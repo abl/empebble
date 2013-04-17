@@ -1,40 +1,89 @@
 <!doctype html>
 <html lang="en-us">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Emscripten-Generated Code</title>
-    <style>
-      .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
-      textarea.emscripten { font-family: monospace; width: 80%; }
-      div.emscripten { text-align: center; }
-      div.emscripten_border { border: 1px solid black; }
-      /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
-      canvas.emscripten { border: 0px none; }
-    </style>
-  </head>
-  <body>
-    <hr/>
-    <div class="emscripten" id="status">Downloading...</div>
-    <div class="emscripten">
-      <progress value="0" max="100" id="progress" hidden=1></progress>  
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width">
+
+  <title>Empebble</title>
+
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/foundation/4.0.9/css/normalize.css">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/foundation/4.0.9/css/foundation.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+
+  <script src="//cdnjs.cloudflare.com/ajax/libs/foundation/4.0.9/js/vendor/custom.modernizr.js"></script>
+
+</head>
+<body>
+  <nav class="top-bar">
+  <ul class="title-area">
+    <!-- Title Area -->
+    <li class="name">
+      <h1><a href="#">Empebble</a></h1>
+    </li>
+    <!-- Remove the class "menu-icon" to get rid of menu icon. Take out "Menu" to just have icon alone -->
+    <li class="toggle-topbar menu-icon"><a href="#"><span>Menu</span></a></li>
+  </ul>
+
+  <section class="top-bar-section">
+    <ul class="right">
+      <li class="divider hide-for-small"></li>
+      <li><a href="../classio/">Classio</a></li>
+      <li><a href="../just_a_bit/">Just a Bit</a></li>
+      <li><a href="../segment_six/">Segment Six</a></li>
+
+      <li class="has-dropdown"><a href="#" class="">Color</a>
+        <ul class="dropdown drop-colors">
+          <li><a href="#" class="drop-color">Black</a></li>
+          <li><a href="#" class="drop-color">Red</a></li>
+          <li><a href="#" class="drop-color">Orange</a></li>
+          <li><a href="#" class="drop-color">Gray</a></li>
+          <li><a href="#" class="drop-color">White</a></li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+</nav>
+
+
+  <div class="row">
+
+    <div class="small-12 large-6 columns">
+      <div class="row" id="pebble-row">
+        <div class="small-12 columns" style="margin-bottom: 1em">
+          <div class="pebble-body-wrapper">
+            <div class="pebble-body pebble-body-red slranger" style="height:395px">
+              <div class="pebble-face">
+                <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+              </div>
+
+              <div class="pebble-overlay static" name="img712">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="small-6 small-centered columns">
+
+          <div class="progress alert round hide">
+            <span class="meter" id="meter" style="width: 0%"></span>
+          </div>
+
+          <div class="emscripten text-center" id="status">Loading</div>
+        </div>
+      </div>
+
     </div>
-    <div class="emscripten_border">
-      <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+
+    <div class="small-12 large-6 columns">
+      <div class="panel radius" style="height: 395px;">
+        <textarea class="emscripten" id="output" style="height: 100%"></textarea>
+      </div>
     </div>
-    <hr/>
-    <div class="emscripten">
-      <input type="checkbox" id="resize">Resize canvas
-      <input type="checkbox" id="pointerLock" checked>Lock/hide mouse pointer
-      &nbsp;&nbsp;&nbsp;
-      <input type="button" value="Fullscreen" onclick="Module.requestFullScreen(document.getElementById('pointerLock').checked, 
-                                                                                document.getElementById('resize').checked)">
-    </div>
-    
-    <hr/>
-    <textarea class="emscripten" id="output" rows="8"></textarea>
-    <hr>
-    <script type='text/javascript'>
+  </div>
+
+  <script type='text/javascript'>
       // connect to canvas
       var Module = {
         preRun: [],
@@ -65,31 +114,69 @@
         setStatus: function(text) {
           if (Module.setStatus.interval) clearInterval(Module.setStatus.interval);
           var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
-          var statusElement = document.getElementById('status');
-          var progressElement = document.getElementById('progress');
-          if (m) {
-            text = m[1];
-            progressElement.value = parseInt(m[2])*100;
-            progressElement.max = parseInt(m[4])*100;
-            progressElement.hidden = false;
-          } else {
-            progressElement.value = null;
-            progressElement.max = null;
-            progressElement.hidden = true;
+            var statusElement = document.getElementById('status');
+            var progressElement = document.getElementById('meter');
+            if (m) {
+              text = m[1];
+              progressElement.style.width = String(parseInt(m[2])*100/parseInt(m[4]))+"%";
+              progressElement.hidden(false);
+            } else {
+              if(progressElement) {
+                progressElement.value = null;
+                progressElement.max = null;
+                progressElement.hidden = true;
+              }
+            }
+            statusElement.innerHTML = text;
+          },
+          totalDependencies: 0,
+          monitorRunDependencies: function(left) {
+            this.totalDependencies = Math.max(this.totalDependencies, left);
+            Module.setStatus(left ? 'Preparing (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
           }
-          statusElement.innerHTML = text;
-        },
-        totalDependencies: 0,
-        monitorRunDependencies: function(left) {
-          this.totalDependencies = Math.max(this.totalDependencies, left);
-          Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
-        }
-      };
-      Module.setStatus('Downloading...');
-    </script>      
-    <script type='text/javascript'>
+        };
+        Module.setStatus('Downloading');
+        </script>      
+        <script>
+        document.write('<script src=//cdnjs.cloudflare.com/ajax/libs/foundation/4.0.9/js/vendor/' +
+          ('__proto__' in {} ? 'zepto' : 'jquery') + '.js><\/script>')
+        </script> <script src="//cdnjs.cloudflare.com/ajax/libs/foundation/4.0.9/js/foundation.min.js">
+        </script>
+        <script>
+        $(document).foundation();
+        $('.drop-colors .drop-color').click(function(e){
+          switch(this.textContent) {
+            case "Black":
+              $('.pebble-body').css("background-position", "0px 0px");
+              break;
+            case "Red":
+              $('.pebble-body').css("background-position", "0px "+394*-1+"px");
+              break;
+            case "Orange":
+              $('.pebble-body').css("background-position", "0px "+394*-2+"px");
+              break;
+            case "Gray":
+              $('.pebble-body').css("background-position", "0px "+394*-3+"px");
+              break;
+            case "White":
+              $('.pebble-body').css("background-position", "0px "+394*-4+"px");
+              break;
+          }
+        });
+        </script>
 
-      // Note: Some Emscripten settings will significantly limit the speed of the generated code.
+        <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-563771-4', 'github.io');
+        ga('send', 'pageview');
+
+        </script>
+        <script type='text/javascript'>
+          // Note: Some Emscripten settings will significantly limit the speed of the generated code.
 // Note: Some Emscripten settings may limit the speed of the generated code.
 try {
   this['Module'] = Module;
@@ -113,16 +200,18 @@ if (ENVIRONMENT_IS_NODE) {
   };
   var nodeFS = require('fs');
   var nodePath = require('path');
-  Module['read'] = function(filename) {
+  Module['read'] = function(filename, binary) {
     filename = nodePath['normalize'](filename);
-    var ret = nodeFS['readFileSync'](filename).toString();
+    var ret = nodeFS['readFileSync'](filename);
     // The path is absolute if the normalized version is the same as the resolved.
     if (!ret && filename != nodePath['resolve'](filename)) {
       filename = path.join(__dirname, '..', 'src', filename);
-      ret = nodeFS['readFileSync'](filename).toString();
+      ret = nodeFS['readFileSync'](filename);
     }
+    if (ret && !binary) ret = ret.toString();
     return ret;
   };
+  Module['readBinary'] = function(filename) { return Module['read'](filename, true) };
   Module['load'] = function(f) {
     globalEval(read(f));
   };
@@ -133,12 +222,10 @@ if (ENVIRONMENT_IS_NODE) {
 if (ENVIRONMENT_IS_SHELL) {
   Module['print'] = print;
   if (typeof printErr != 'undefined') Module['printErr'] = printErr; // not present in v8 or older sm
-  // Polyfill over SpiderMonkey/V8 differences
-  if (typeof read != 'undefined') {
-    Module['read'] = read;
-  } else {
-    Module['read'] = function(f) { snarf(f) };
-  }
+  Module['read'] = read;
+  Module['readBinary'] = function(f) {
+    return read(f, 'binary');
+  };
   if (!Module['arguments']) {
     if (typeof scriptArgs != 'undefined') {
       Module['arguments'] = scriptArgs;
@@ -794,6 +881,10 @@ var nullString = allocate(intArrayFromString('(null)'), 'i8', ALLOC_STACK);
 function callRuntimeCallbacks(callbacks) {
   while(callbacks.length > 0) {
     var callback = callbacks.shift();
+    if (typeof callback == 'function') {
+      callback();
+      continue;
+    }
     var func = callback.func;
     if (typeof func === 'number') {
       if (callback.arg === undefined) {
@@ -809,7 +900,10 @@ function callRuntimeCallbacks(callbacks) {
 var __ATINIT__ = []; // functions called during startup
 var __ATMAIN__ = []; // functions called when main() is to be run
 var __ATEXIT__ = []; // functions called during shutdown
-function initRuntime() {
+var runtimeInitialized = false;
+function ensureInitRuntime() {
+  if (runtimeInitialized) return;
+  runtimeInitialized = true;
   callRuntimeCallbacks(__ATINIT__);
 }
 function preMain() {
@@ -898,7 +992,7 @@ if (!Math.imul) Math.imul = function(a, b) {
 // the dependencies are met.
 var runDependencies = 0;
 var runDependencyTracking = {};
-var calledRun = false;
+var calledInit = false, calledRun = false;
 var runDependencyWatcher = null;
 function addRunDependency(id) {
   runDependencies++;
@@ -952,33 +1046,39 @@ function removeRunDependency(id) {
 Module['removeRunDependency'] = removeRunDependency;
 Module["preloadedImages"] = {}; // maps url to image data
 Module["preloadedAudios"] = {}; // maps url to audio data
+function addPreRun(func) {
+  if (!Module['preRun']) Module['preRun'] = [];
+  else if (typeof Module['preRun'] == 'function') Module['preRun'] = [Module['preRun']];
+  Module['preRun'].push(func);
+}
+var awaitingMemoryInitializer = false;
+function loadMemoryInitializer(filename) {
+  function applyData(data) {
+    HEAPU8.set(data, TOTAL_STACK);
+    runPostSets();
+  }
+  // always do this asynchronously, to keep shell and web as similar as possible
+  addPreRun(function() {
+    if (ENVIRONMENT_IS_NODE || ENVIRONMENT_IS_SHELL) {
+      applyData(Module['readBinary'](filename));
+    } else {
+      Browser.asyncLoad(filename, function(data) {
+        applyData(data);
+      }, function(data) {
+        throw 'could not load memory initializer ' + filename;
+      });
+    }
+  });
+  awaitingMemoryInitializer = false;
+}
 // === Body ===
 assert(STATICTOP == STACK_MAX); assert(STACK_MAX == TOTAL_STACK);
-STATICTOP += 560;
+STATICTOP += 548;
 assert(STATICTOP < TOTAL_MEMORY);
-allocate(88, "i8", ALLOC_NONE, 5242880);
-allocate([-1,-1,-1,-1], "i8", ALLOC_NONE, 5242968);
-allocate(4, "i8", ALLOC_NONE, 5242972);
-allocate([255,255,255,255], "i8", ALLOC_NONE, 5242976);
-allocate(4, "i8", ALLOC_NONE, 5242980);
-allocate([0,0,0,255], "i8", ALLOC_NONE, 5242984);
-allocate([8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], ["*",0,0,0,"*",0,0,0,"*",0,0,0,"*",0,0,0,"*",0,0,0,"*",0,0,0,"i32",0,0,0,"*",0,0,0,"i16",0,"i16",0,"*",0,0,0,"*",0,0,0,"*",0,0,0,"*",0,0,0,"*",0,0,0,"*",0,0,0,"*",0,0,0], ALLOC_NONE, 5242988);
-allocate(40, "i8", ALLOC_NONE, 5243052);
-allocate([-1,-1,-1,0], "i8", ALLOC_NONE, 5243092);
-allocate([0,0,0,-1], "i8", ALLOC_NONE, 5243096);
-allocate(4, "i8", ALLOC_NONE, 5243100);
-allocate([80,97,115,115,105,110,103,32,99,111,110,116,114,111,108,32,116,111,32,109,97,105,110,32,108,111,111,112,10,0] /* Passing control to m */, "i8", ALLOC_NONE, 5243104);
-allocate([71,111,116,32,97,112,112,95,101,118,101,110,116,95,108,111,111,112,10,0] /* Got app_event_loop\0 */, "i8", ALLOC_NONE, 5243136);
-allocate([116,105,99,107,32,104,97,110,100,108,101,114,0] /* tick handler\00 */, "i8", ALLOC_NONE, 5243156);
-allocate([85,110,107,110,111,119,110,32,116,105,99,107,32,117,110,105,116,10,0] /* Unknown tick unit\0A */, "i8", ALLOC_NONE, 5243172);
-allocate([85,110,115,117,112,112,111,114,116,101,100,32,116,105,99,107,32,117,110,105,116,58,32,89,69,65,82,95,85,78,73,84,0] /* Unsupported tick uni */, "i8", ALLOC_NONE, 5243192);
-allocate([85,110,115,117,112,112,111,114,116,101,100,32,116,105,99,107,32,117,110,105,116,58,32,77,79,78,84,72,95,85,78,73,84,0] /* Unsupported tick uni */, "i8", ALLOC_NONE, 5243228);
-allocate([74,117,115,116,32,65,32,66,105,116,32,119,97,116,99,104,0] /* Just A Bit watch\00 */, "i8", ALLOC_NONE, 5243264);
-allocate([85,110,115,117,112,112,111,114,116,101,100,32,116,105,99,107,32,117,110,105,116,58,32,68,65,89,95,85,78,73,84,0] /* Unsupported tick uni */, "i8", ALLOC_NONE, 5243284);
-allocate([84,84,70,95,73,110,105,116,58,32,37,115,10,0] /* TTF_Init: %s\0A\00 */, "i8", ALLOC_NONE, 5243316);
-allocate([83,68,76,95,83,101,116,86,105,100,101,111,77,111,100,101,32,102,97,105,108,101,100,33,10,0] /* SDL_SetVideoMode fai */, "i8", ALLOC_NONE, 5243332);
-allocate([69,110,116,101,114,105,110,103,32,109,97,105,110,10,0] /* Entering main\0A\00 */, "i8", ALLOC_NONE, 5243360);
-allocate(64, "i8", ALLOC_NONE, 5243376);
+/* memory initializer */ allocate([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,255,255,255,0,0,0,0,0,0,0,255,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,80,97,115,115,105,110,103,32,99,111,110,116,114,111,108,32,116,111,32,109,97,105,110,32,108,111,111,112,10,0,0,0,71,111,116,32,97,112,112,95,101,118,101,110,116,95,108,111,111,112,10,0,74,117,115,116,32,65,32,66,105,116,32,119,97,116,99,104,0,0,0,0,85,110,107,110,111,119,110,32,116,105,99,107,32,117,110,105,116,10,0,0,85,110,115,117,112,112,111,114,116,101,100,32,116,105,99,107,32,117,110,105,116,58,32,89,69,65,82,95,85,78,73,84,0,0,0,0,85,110,115,117,112,112,111,114,116,101,100,32,116,105,99,107,32,117,110,105,116,58,32,77,79,78,84,72,95,85,78,73,84,0,0,0,85,110,115,117,112,112,111,114,116,101,100,32,116,105,99,107,32,117,110,105,116,58,32,68,65,89,95,85,78,73,84,0,84,84,70,95,73,110,105,116,58,32,37,115,10,0,0,0,83,68,76,95,83,101,116,86,105,100,101,111,77,111,100,101,32,102,97,105,108,101,100,33,10,0,0,0,69,110,116,101,114,105,110,103,32,109,97,105,110,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "i8", ALLOC_NONE, TOTAL_STACK)
+function runPostSets() {
+}
+if (!awaitingMemoryInitializer) runPostSets();
   function _memcpy(dest, src, num) {
       dest = dest|0; src = src|0; num = num|0;
       var ret = 0;
@@ -1966,8 +2066,7 @@ allocate(64, "i8", ALLOC_NONE, 5243376);
             'ogg': 'audio/ogg',
             'wav': 'audio/wav',
             'mp3': 'audio/mpeg'
-          }[name.substr(-3)];
-          return ret;
+          }[name.substr(name.lastIndexOf('.')+1)];
         }
         if (!Module["preloadPlugins"]) Module["preloadPlugins"] = [];
         var imagePlugin = {};
@@ -2085,7 +2184,8 @@ allocate(64, "i8", ALLOC_NONE, 5243376);
         canvas.exitPointerLock = document['exitPointerLock'] ||
                                  document['mozExitPointerLock'] ||
                                  document['webkitExitPointerLock'];
-        canvas.exitPointerLock = canvas.exitPointerLock.bind(document);
+        if(canvas.exitPointerLock)
+          canvas.exitPointerLock = canvas.exitPointerLock.bind(document);
         function pointerLockChange() {
           Browser.pointerLock = document['pointerLockElement'] === canvas ||
                                 document['mozPointerLockElement'] === canvas ||
@@ -2190,7 +2290,7 @@ allocate(64, "i8", ALLOC_NONE, 5243376);
         xhr.open('GET', url, true);
         xhr.responseType = 'arraybuffer';
         xhr.onload = function() {
-          if (xhr.status == 200) {
+          if (xhr.status == 200 || (xhr.status == 0 && xhr.response)) { // file URLs can return 0
             onload(xhr.response);
           } else {
             onerror();
@@ -2628,12 +2728,6 @@ allocate(64, "i8", ALLOC_NONE, 5243376);
       }
       return ret;
     }
-  function __emscripten_push_main_loop_blocker(func, arg, name) {
-      Browser.mainLoop.queue.push({ func: function() {
-        Runtime.dynCall('vi', func, [arg]);
-      }, name: Pointer_stringify(name), counted: true });
-      Browser.mainLoop.updateStatus();
-    }
   function _SDL_Flip(surf) {
       // We actually do this in Unlock, since the screen surface has as its canvas
       // backing the page canvas element
@@ -2805,12 +2899,6 @@ allocate(64, "i8", ALLOC_NONE, 5243376);
       surfData.ctx.fillRect(r.x, r.y, r.w, r.h);
       surfData.ctx.restore();
     }
-  function _SDL_MapRGBA(fmt, r, g, b, a) {
-      // Canvas screens are always RGBA
-      return (a&0xff)+((b&0xff)<<8)+((g&0xff)<<16)+((r&0xff)<<24)
-    }
-  var _floor=Math.floor;
-  var _sqrt=Math.sqrt;
   function _malloc(bytes) {
       /* Over-allocate to make sure it is byte-aligned by 8.
        * This will leak memory, but this is only the dummy
@@ -2899,28 +2987,991 @@ Module["requestFullScreen"] = function(lockPointer, resizeCanvas) { Browser.requ
   Module["requestAnimationFrame"] = function(func) { Browser.requestAnimationFrame(func) };
   Module["pauseMainLoop"] = function() { Browser.mainLoop.pause() };
   Module["resumeMainLoop"] = function() { Browser.mainLoop.resume() };
-var FUNCTION_TABLE = [0,0,_tick,0,_loop,0,_display_layer_update_callback,0,_handle_init,0,_handle_second_tick,0];
+var FUNCTION_TABLE = [0,0,_loop,0,_display_layer_update_callback,0,_handle_init,0,_handle_second_tick,0];
 // EMSCRIPTEN_START_FUNCS
+function _xDrawPixel8($s, $x, $y, $c) {
+  var label = 0;
+  label = 2; 
+  while(1) switch(label) {
+    case 2: 
+      var $s_addr;
+      var $x_addr;
+      var $y_addr;
+      var $c_addr;
+      $s_addr=$s;
+      $x_addr=$x;
+      $y_addr=$y;
+      $c_addr=$c;
+      var $0=$x_addr;
+      var $cmp=0 <= (($0)|(0));
+      if ($cmp) { label = 3; break; } else { label = 7; break; }
+    case 3: 
+      var $1=$x_addr;
+      var $2=$s_addr;
+      var $w=(($2+8)|0);
+      var $3=HEAP32[(($w)>>2)];
+      var $add=(($3)|0);
+      var $cmp1=(($1)|(0)) < (($add)|(0));
+      if ($cmp1) { label = 4; break; } else { label = 7; break; }
+    case 4: 
+      var $4=$y_addr;
+      var $cmp3=0 <= (($4)|(0));
+      if ($cmp3) { label = 5; break; } else { label = 7; break; }
+    case 5: 
+      var $5=$y_addr;
+      var $6=$s_addr;
+      var $h=(($6+12)|0);
+      var $7=HEAP32[(($h)>>2)];
+      var $add5=(($7)|0);
+      var $cmp6=(($5)|(0)) < (($add5)|(0));
+      if ($cmp6) { label = 6; break; } else { label = 7; break; }
+    case 6: 
+      var $8=$c_addr;
+      var $9=$s_addr;
+      var $pixels=(($9+20)|0);
+      var $10=HEAP32[(($pixels)>>2)];
+      var $11=$s_addr;
+      var $pitch=(($11+16)|0);
+      var $12=HEAP32[(($pitch)>>2)];
+      var $13=$y_addr;
+      var $mul=Math.imul($12,$13);
+      var $add_ptr=(($10+$mul)|0);
+      var $14=$x_addr;
+      var $mul7=$14;
+      var $add_ptr8=(($add_ptr+$mul7)|0);
+      HEAP8[($add_ptr8)]=$8;
+      label = 7; break;
+    case 7: 
+      return;
+    default: assert(0, "bad label: " + label);
+  }
+}
+function _xDrawPixel16($s, $x, $y, $c) {
+  var label = 0;
+  label = 2; 
+  while(1) switch(label) {
+    case 2: 
+      var $s_addr;
+      var $x_addr;
+      var $y_addr;
+      var $c_addr;
+      $s_addr=$s;
+      $x_addr=$x;
+      $y_addr=$y;
+      $c_addr=$c;
+      var $0=$x_addr;
+      var $cmp=0 <= (($0)|(0));
+      if ($cmp) { label = 3; break; } else { label = 7; break; }
+    case 3: 
+      var $1=$x_addr;
+      var $2=$s_addr;
+      var $w=(($2+8)|0);
+      var $3=HEAP32[(($w)>>2)];
+      var $add=(($3)|0);
+      var $cmp1=(($1)|(0)) < (($add)|(0));
+      if ($cmp1) { label = 4; break; } else { label = 7; break; }
+    case 4: 
+      var $4=$y_addr;
+      var $cmp3=0 <= (($4)|(0));
+      if ($cmp3) { label = 5; break; } else { label = 7; break; }
+    case 5: 
+      var $5=$y_addr;
+      var $6=$s_addr;
+      var $h=(($6+12)|0);
+      var $7=HEAP32[(($h)>>2)];
+      var $add5=(($7)|0);
+      var $cmp6=(($5)|(0)) < (($add5)|(0));
+      if ($cmp6) { label = 6; break; } else { label = 7; break; }
+    case 6: 
+      var $8=$c_addr;
+      var $9=$s_addr;
+      var $pixels=(($9+20)|0);
+      var $10=HEAP32[(($pixels)>>2)];
+      var $11=$s_addr;
+      var $pitch=(($11+16)|0);
+      var $12=HEAP32[(($pitch)>>2)];
+      var $13=$y_addr;
+      var $mul=Math.imul($12,$13);
+      var $add_ptr=(($10+$mul)|0);
+      var $14=$x_addr;
+      var $mul7=($14<<1);
+      var $add_ptr8=(($add_ptr+$mul7)|0);
+      var $15=$add_ptr8;
+      HEAP16[(($15)>>1)]=$8;
+      label = 7; break;
+    case 7: 
+      return;
+    default: assert(0, "bad label: " + label);
+  }
+}
+function _xDrawPixel32($s, $x, $y, $c) {
+  var label = 0;
+  label = 2; 
+  while(1) switch(label) {
+    case 2: 
+      var $s_addr;
+      var $x_addr;
+      var $y_addr;
+      var $c_addr;
+      $s_addr=$s;
+      $x_addr=$x;
+      $y_addr=$y;
+      $c_addr=$c;
+      var $0=$x_addr;
+      var $cmp=0 <= (($0)|(0));
+      if ($cmp) { label = 3; break; } else { label = 7; break; }
+    case 3: 
+      var $1=$x_addr;
+      var $2=$s_addr;
+      var $w=(($2+8)|0);
+      var $3=HEAP32[(($w)>>2)];
+      var $add=(($3)|0);
+      var $cmp1=(($1)|(0)) < (($add)|(0));
+      if ($cmp1) { label = 4; break; } else { label = 7; break; }
+    case 4: 
+      var $4=$y_addr;
+      var $cmp3=0 <= (($4)|(0));
+      if ($cmp3) { label = 5; break; } else { label = 7; break; }
+    case 5: 
+      var $5=$y_addr;
+      var $6=$s_addr;
+      var $h=(($6+12)|0);
+      var $7=HEAP32[(($h)>>2)];
+      var $add5=(($7)|0);
+      var $cmp6=(($5)|(0)) < (($add5)|(0));
+      if ($cmp6) { label = 6; break; } else { label = 7; break; }
+    case 6: 
+      var $8=$c_addr;
+      var $9=$s_addr;
+      var $pixels=(($9+20)|0);
+      var $10=HEAP32[(($pixels)>>2)];
+      var $11=$s_addr;
+      var $pitch=(($11+16)|0);
+      var $12=HEAP32[(($pitch)>>2)];
+      var $13=$y_addr;
+      var $mul=Math.imul($12,$13);
+      var $add_ptr=(($10+$mul)|0);
+      var $14=$x_addr;
+      var $mul7=($14<<2);
+      var $add_ptr8=(($add_ptr+$mul7)|0);
+      var $15=$add_ptr8;
+      HEAP32[(($15)>>2)]=$8;
+      label = 7; break;
+    case 7: 
+      return;
+    default: assert(0, "bad label: " + label);
+  }
+}
+function _xDrawLine8($s, $x0, $x1, $y, $c) {
+  var label = 0;
+  label = 2; 
+  while(1) switch(label) {
+    case 2: 
+      var $s_addr;
+      var $x0_addr;
+      var $x1_addr;
+      var $y_addr;
+      var $c_addr;
+      var $p;
+      $s_addr=$s;
+      $x0_addr=$x0;
+      $x1_addr=$x1;
+      $y_addr=$y;
+      $c_addr=$c;
+      var $0=$y_addr;
+      var $cmp=0 <= (($0)|(0));
+      if ($cmp) { label = 3; break; } else { label = 4; break; }
+    case 3: 
+      var $1=$y_addr;
+      var $2=$s_addr;
+      var $h=(($2+12)|0);
+      var $3=HEAP32[(($h)>>2)];
+      var $add=(($3)|0);
+      var $cmp1=(($1)|(0)) < (($add)|(0));
+      if ($cmp1) { label = 5; break; } else { label = 4; break; }
+    case 4: 
+      label = 12; break;
+    case 5: 
+      var $4=$x0_addr;
+      var $cmp2=(($4)|(0)) < 0;
+      if ($cmp2) { label = 6; break; } else { label = 7; break; }
+    case 6: 
+      $x0_addr=0;
+      label = 7; break;
+    case 7: 
+      var $5=$x1_addr;
+      var $6=$s_addr;
+      var $w=(($6+8)|0);
+      var $7=HEAP32[(($w)>>2)];
+      var $add5=(($7)|0);
+      var $cmp6=(($5)|(0)) >= (($add5)|(0));
+      if ($cmp6) { label = 8; break; } else { label = 9; break; }
+    case 8: 
+      var $8=$s_addr;
+      var $w8=(($8+8)|0);
+      var $9=HEAP32[(($w8)>>2)];
+      var $add9=(($9)|0);
+      var $sub=((($add9)-(1))|0);
+      $x1_addr=$sub;
+      label = 9; break;
+    case 9: 
+      var $10=$s_addr;
+      var $pixels=(($10+20)|0);
+      var $11=HEAP32[(($pixels)>>2)];
+      var $12=$s_addr;
+      var $pitch=(($12+16)|0);
+      var $13=HEAP32[(($pitch)>>2)];
+      var $14=$y_addr;
+      var $mul=Math.imul($13,$14);
+      var $add_ptr=(($11+$mul)|0);
+      var $15=$x0_addr;
+      var $mul11=$15;
+      var $add_ptr12=(($add_ptr+$mul11)|0);
+      $p=$add_ptr12;
+      var $16=$x0_addr;
+      var $17=$x1_addr;
+      var $sub13=((($17)-($16))|0);
+      $x1_addr=$sub13;
+      label = 10; break;
+    case 10: 
+      var $18=$x1_addr;
+      var $dec=((($18)-(1))|0);
+      $x1_addr=$dec;
+      var $cmp14=(($18)|(0)) >= 0;
+      if ($cmp14) { label = 11; break; } else { label = 12; break; }
+    case 11: 
+      var $19=$c_addr;
+      var $20=$p;
+      var $incdec_ptr=(($20+1)|0);
+      $p=$incdec_ptr;
+      HEAP8[($20)]=$19;
+      label = 10; break;
+    case 12: 
+      return;
+    default: assert(0, "bad label: " + label);
+  }
+}
+function _xDrawLine16($s, $x0, $x1, $y, $c) {
+  var label = 0;
+  label = 2; 
+  while(1) switch(label) {
+    case 2: 
+      var $s_addr;
+      var $x0_addr;
+      var $x1_addr;
+      var $y_addr;
+      var $c_addr;
+      var $p;
+      $s_addr=$s;
+      $x0_addr=$x0;
+      $x1_addr=$x1;
+      $y_addr=$y;
+      $c_addr=$c;
+      var $0=$y_addr;
+      var $cmp=0 <= (($0)|(0));
+      if ($cmp) { label = 3; break; } else { label = 4; break; }
+    case 3: 
+      var $1=$y_addr;
+      var $2=$s_addr;
+      var $h=(($2+12)|0);
+      var $3=HEAP32[(($h)>>2)];
+      var $add=(($3)|0);
+      var $cmp1=(($1)|(0)) < (($add)|(0));
+      if ($cmp1) { label = 5; break; } else { label = 4; break; }
+    case 4: 
+      label = 12; break;
+    case 5: 
+      var $4=$x0_addr;
+      var $cmp2=(($4)|(0)) < 0;
+      if ($cmp2) { label = 6; break; } else { label = 7; break; }
+    case 6: 
+      $x0_addr=0;
+      label = 7; break;
+    case 7: 
+      var $5=$x1_addr;
+      var $6=$s_addr;
+      var $w=(($6+8)|0);
+      var $7=HEAP32[(($w)>>2)];
+      var $add5=(($7)|0);
+      var $cmp6=(($5)|(0)) >= (($add5)|(0));
+      if ($cmp6) { label = 8; break; } else { label = 9; break; }
+    case 8: 
+      var $8=$s_addr;
+      var $w8=(($8+8)|0);
+      var $9=HEAP32[(($w8)>>2)];
+      var $add9=(($9)|0);
+      var $sub=((($add9)-(1))|0);
+      $x1_addr=$sub;
+      label = 9; break;
+    case 9: 
+      var $10=$s_addr;
+      var $pixels=(($10+20)|0);
+      var $11=HEAP32[(($pixels)>>2)];
+      var $12=$s_addr;
+      var $pitch=(($12+16)|0);
+      var $13=HEAP32[(($pitch)>>2)];
+      var $14=$y_addr;
+      var $mul=Math.imul($13,$14);
+      var $add_ptr=(($11+$mul)|0);
+      var $15=$x0_addr;
+      var $mul11=($15<<1);
+      var $add_ptr12=(($add_ptr+$mul11)|0);
+      var $16=$add_ptr12;
+      $p=$16;
+      var $17=$x0_addr;
+      var $18=$x1_addr;
+      var $sub13=((($18)-($17))|0);
+      $x1_addr=$sub13;
+      label = 10; break;
+    case 10: 
+      var $19=$x1_addr;
+      var $dec=((($19)-(1))|0);
+      $x1_addr=$dec;
+      var $cmp14=(($19)|(0)) >= 0;
+      if ($cmp14) { label = 11; break; } else { label = 12; break; }
+    case 11: 
+      var $20=$c_addr;
+      var $21=$p;
+      var $incdec_ptr=(($21+2)|0);
+      $p=$incdec_ptr;
+      HEAP16[(($21)>>1)]=$20;
+      label = 10; break;
+    case 12: 
+      return;
+    default: assert(0, "bad label: " + label);
+  }
+}
+function _xDrawLine32($s, $x0, $x1, $y, $c) {
+  var label = 0;
+  label = 2; 
+  while(1) switch(label) {
+    case 2: 
+      var $s_addr;
+      var $x0_addr;
+      var $x1_addr;
+      var $y_addr;
+      var $c_addr;
+      var $p;
+      $s_addr=$s;
+      $x0_addr=$x0;
+      $x1_addr=$x1;
+      $y_addr=$y;
+      $c_addr=$c;
+      var $0=$y_addr;
+      var $cmp=0 <= (($0)|(0));
+      if ($cmp) { label = 3; break; } else { label = 4; break; }
+    case 3: 
+      var $1=$y_addr;
+      var $2=$s_addr;
+      var $h=(($2+12)|0);
+      var $3=HEAP32[(($h)>>2)];
+      var $add=(($3)|0);
+      var $cmp1=(($1)|(0)) < (($add)|(0));
+      if ($cmp1) { label = 5; break; } else { label = 4; break; }
+    case 4: 
+      label = 12; break;
+    case 5: 
+      var $4=$x0_addr;
+      var $cmp2=(($4)|(0)) < 0;
+      if ($cmp2) { label = 6; break; } else { label = 7; break; }
+    case 6: 
+      $x0_addr=0;
+      label = 7; break;
+    case 7: 
+      var $5=$x1_addr;
+      var $6=$s_addr;
+      var $w=(($6+8)|0);
+      var $7=HEAP32[(($w)>>2)];
+      var $add5=(($7)|0);
+      var $cmp6=(($5)|(0)) >= (($add5)|(0));
+      if ($cmp6) { label = 8; break; } else { label = 9; break; }
+    case 8: 
+      var $8=$s_addr;
+      var $w8=(($8+8)|0);
+      var $9=HEAP32[(($w8)>>2)];
+      var $add9=(($9)|0);
+      var $sub=((($add9)-(1))|0);
+      $x1_addr=$sub;
+      label = 9; break;
+    case 9: 
+      var $10=$s_addr;
+      var $pixels=(($10+20)|0);
+      var $11=HEAP32[(($pixels)>>2)];
+      var $12=$s_addr;
+      var $pitch=(($12+16)|0);
+      var $13=HEAP32[(($pitch)>>2)];
+      var $14=$y_addr;
+      var $mul=Math.imul($13,$14);
+      var $add_ptr=(($11+$mul)|0);
+      var $15=$x0_addr;
+      var $mul11=($15<<2);
+      var $add_ptr12=(($add_ptr+$mul11)|0);
+      var $16=$add_ptr12;
+      $p=$16;
+      var $17=$x0_addr;
+      var $18=$x1_addr;
+      var $sub13=((($18)-($17))|0);
+      $x1_addr=$sub13;
+      label = 10; break;
+    case 10: 
+      var $19=$x1_addr;
+      var $dec=((($19)-(1))|0);
+      $x1_addr=$dec;
+      var $cmp14=(($19)|(0)) >= 0;
+      if ($cmp14) { label = 11; break; } else { label = 12; break; }
+    case 11: 
+      var $20=$c_addr;
+      var $21=$p;
+      var $incdec_ptr=(($21+4)|0);
+      $p=$incdec_ptr;
+      HEAP32[(($21)>>2)]=$20;
+      label = 10; break;
+    case 12: 
+      return;
+    default: assert(0, "bad label: " + label);
+  }
+}
+function _FillCircle8($s, $x0, $y0, $radius, $colour) {
+  var label = 0;
+  label = 2; 
+  while(1) switch(label) {
+    case 2: 
+      var $s_addr;
+      var $x0_addr;
+      var $y0_addr;
+      var $radius_addr;
+      var $colour_addr;
+      var $f;
+      var $ddF_x;
+      var $ddF_y;
+      var $x;
+      var $y;
+      $s_addr=$s;
+      $x0_addr=$x0;
+      $y0_addr=$y0;
+      $radius_addr=$radius;
+      $colour_addr=$colour;
+      var $0=$radius_addr;
+      var $sub=(((1)-($0))|0);
+      $f=$sub;
+      $ddF_x=0;
+      var $1=$radius_addr;
+      var $mul=((($1)*(-2))&-1);
+      $ddF_y=$mul;
+      $x=0;
+      var $2=$radius_addr;
+      $y=$2;
+      var $3=$s_addr;
+      var $4=$x0_addr;
+      var $5=$y0_addr;
+      var $6=$radius_addr;
+      var $add=((($5)+($6))|0);
+      var $7=$colour_addr;
+      _xDrawPixel8($3, $4, $add, $7);
+      var $8=$s_addr;
+      var $9=$x0_addr;
+      var $10=$y0_addr;
+      var $11=$radius_addr;
+      var $sub1=((($10)-($11))|0);
+      var $12=$colour_addr;
+      _xDrawPixel8($8, $9, $sub1, $12);
+      var $13=$s_addr;
+      var $14=$x0_addr;
+      var $15=$radius_addr;
+      var $sub2=((($14)-($15))|0);
+      var $16=$x0_addr;
+      var $17=$radius_addr;
+      var $add3=((($16)+($17))|0);
+      var $18=$y0_addr;
+      var $19=$colour_addr;
+      _xDrawLine8($13, $sub2, $add3, $18, $19);
+      label = 3; break;
+    case 3: 
+      var $20=$x;
+      var $21=$y;
+      var $cmp=(($20)|(0)) < (($21)|(0));
+      if ($cmp) { label = 4; break; } else { label = 7; break; }
+    case 4: 
+      var $22=$f;
+      var $cmp4=(($22)|(0)) >= 0;
+      if ($cmp4) { label = 5; break; } else { label = 6; break; }
+    case 5: 
+      var $23=$y;
+      var $dec=((($23)-(1))|0);
+      $y=$dec;
+      var $24=$ddF_y;
+      var $add5=((($24)+(2))|0);
+      $ddF_y=$add5;
+      var $25=$ddF_y;
+      var $26=$f;
+      var $add6=((($26)+($25))|0);
+      $f=$add6;
+      label = 6; break;
+    case 6: 
+      var $27=$x;
+      var $inc=((($27)+(1))|0);
+      $x=$inc;
+      var $28=$ddF_x;
+      var $add7=((($28)+(2))|0);
+      $ddF_x=$add7;
+      var $29=$ddF_x;
+      var $add8=((($29)+(1))|0);
+      var $30=$f;
+      var $add9=((($30)+($add8))|0);
+      $f=$add9;
+      var $31=$s_addr;
+      var $32=$x0_addr;
+      var $33=$x;
+      var $sub10=((($32)-($33))|0);
+      var $34=$x0_addr;
+      var $35=$x;
+      var $add11=((($34)+($35))|0);
+      var $36=$y0_addr;
+      var $37=$y;
+      var $add12=((($36)+($37))|0);
+      var $38=$colour_addr;
+      _xDrawLine8($31, $sub10, $add11, $add12, $38);
+      var $39=$s_addr;
+      var $40=$x0_addr;
+      var $41=$x;
+      var $sub13=((($40)-($41))|0);
+      var $42=$x0_addr;
+      var $43=$x;
+      var $add14=((($42)+($43))|0);
+      var $44=$y0_addr;
+      var $45=$y;
+      var $sub15=((($44)-($45))|0);
+      var $46=$colour_addr;
+      _xDrawLine8($39, $sub13, $add14, $sub15, $46);
+      var $47=$s_addr;
+      var $48=$x0_addr;
+      var $49=$y;
+      var $sub16=((($48)-($49))|0);
+      var $50=$x0_addr;
+      var $51=$y;
+      var $add17=((($50)+($51))|0);
+      var $52=$y0_addr;
+      var $53=$x;
+      var $add18=((($52)+($53))|0);
+      var $54=$colour_addr;
+      _xDrawLine8($47, $sub16, $add17, $add18, $54);
+      var $55=$s_addr;
+      var $56=$x0_addr;
+      var $57=$y;
+      var $sub19=((($56)-($57))|0);
+      var $58=$x0_addr;
+      var $59=$y;
+      var $add20=((($58)+($59))|0);
+      var $60=$y0_addr;
+      var $61=$x;
+      var $sub21=((($60)-($61))|0);
+      var $62=$colour_addr;
+      _xDrawLine8($55, $sub19, $add20, $sub21, $62);
+      label = 3; break;
+    case 7: 
+      return 0;
+    default: assert(0, "bad label: " + label);
+  }
+}
+function _FillCircle16($s, $x0, $y0, $radius, $colour) {
+  var label = 0;
+  label = 2; 
+  while(1) switch(label) {
+    case 2: 
+      var $s_addr;
+      var $x0_addr;
+      var $y0_addr;
+      var $radius_addr;
+      var $colour_addr;
+      var $f;
+      var $ddF_x;
+      var $ddF_y;
+      var $x;
+      var $y;
+      $s_addr=$s;
+      $x0_addr=$x0;
+      $y0_addr=$y0;
+      $radius_addr=$radius;
+      $colour_addr=$colour;
+      var $0=$radius_addr;
+      var $sub=(((1)-($0))|0);
+      $f=$sub;
+      $ddF_x=0;
+      var $1=$radius_addr;
+      var $mul=((($1)*(-2))&-1);
+      $ddF_y=$mul;
+      $x=0;
+      var $2=$radius_addr;
+      $y=$2;
+      var $3=$s_addr;
+      var $4=$x0_addr;
+      var $5=$y0_addr;
+      var $6=$radius_addr;
+      var $add=((($5)+($6))|0);
+      var $7=$colour_addr;
+      _xDrawPixel16($3, $4, $add, $7);
+      var $8=$s_addr;
+      var $9=$x0_addr;
+      var $10=$y0_addr;
+      var $11=$radius_addr;
+      var $sub1=((($10)-($11))|0);
+      var $12=$colour_addr;
+      _xDrawPixel16($8, $9, $sub1, $12);
+      var $13=$s_addr;
+      var $14=$x0_addr;
+      var $15=$radius_addr;
+      var $sub2=((($14)-($15))|0);
+      var $16=$x0_addr;
+      var $17=$radius_addr;
+      var $add3=((($16)+($17))|0);
+      var $18=$y0_addr;
+      var $19=$colour_addr;
+      _xDrawLine16($13, $sub2, $add3, $18, $19);
+      label = 3; break;
+    case 3: 
+      var $20=$x;
+      var $21=$y;
+      var $cmp=(($20)|(0)) < (($21)|(0));
+      if ($cmp) { label = 4; break; } else { label = 7; break; }
+    case 4: 
+      var $22=$f;
+      var $cmp4=(($22)|(0)) >= 0;
+      if ($cmp4) { label = 5; break; } else { label = 6; break; }
+    case 5: 
+      var $23=$y;
+      var $dec=((($23)-(1))|0);
+      $y=$dec;
+      var $24=$ddF_y;
+      var $add5=((($24)+(2))|0);
+      $ddF_y=$add5;
+      var $25=$ddF_y;
+      var $26=$f;
+      var $add6=((($26)+($25))|0);
+      $f=$add6;
+      label = 6; break;
+    case 6: 
+      var $27=$x;
+      var $inc=((($27)+(1))|0);
+      $x=$inc;
+      var $28=$ddF_x;
+      var $add7=((($28)+(2))|0);
+      $ddF_x=$add7;
+      var $29=$ddF_x;
+      var $add8=((($29)+(1))|0);
+      var $30=$f;
+      var $add9=((($30)+($add8))|0);
+      $f=$add9;
+      var $31=$s_addr;
+      var $32=$x0_addr;
+      var $33=$x;
+      var $sub10=((($32)-($33))|0);
+      var $34=$x0_addr;
+      var $35=$x;
+      var $add11=((($34)+($35))|0);
+      var $36=$y0_addr;
+      var $37=$y;
+      var $add12=((($36)+($37))|0);
+      var $38=$colour_addr;
+      _xDrawLine16($31, $sub10, $add11, $add12, $38);
+      var $39=$s_addr;
+      var $40=$x0_addr;
+      var $41=$x;
+      var $sub13=((($40)-($41))|0);
+      var $42=$x0_addr;
+      var $43=$x;
+      var $add14=((($42)+($43))|0);
+      var $44=$y0_addr;
+      var $45=$y;
+      var $sub15=((($44)-($45))|0);
+      var $46=$colour_addr;
+      _xDrawLine16($39, $sub13, $add14, $sub15, $46);
+      var $47=$s_addr;
+      var $48=$x0_addr;
+      var $49=$y;
+      var $sub16=((($48)-($49))|0);
+      var $50=$x0_addr;
+      var $51=$y;
+      var $add17=((($50)+($51))|0);
+      var $52=$y0_addr;
+      var $53=$x;
+      var $add18=((($52)+($53))|0);
+      var $54=$colour_addr;
+      _xDrawLine16($47, $sub16, $add17, $add18, $54);
+      var $55=$s_addr;
+      var $56=$x0_addr;
+      var $57=$y;
+      var $sub19=((($56)-($57))|0);
+      var $58=$x0_addr;
+      var $59=$y;
+      var $add20=((($58)+($59))|0);
+      var $60=$y0_addr;
+      var $61=$x;
+      var $sub21=((($60)-($61))|0);
+      var $62=$colour_addr;
+      _xDrawLine16($55, $sub19, $add20, $sub21, $62);
+      label = 3; break;
+    case 7: 
+      return 0;
+    default: assert(0, "bad label: " + label);
+  }
+}
+function _FillCircle32($s, $x0, $y0, $radius, $colour) {
+  var label = 0;
+  label = 2; 
+  while(1) switch(label) {
+    case 2: 
+      var $s_addr;
+      var $x0_addr;
+      var $y0_addr;
+      var $radius_addr;
+      var $colour_addr;
+      var $f;
+      var $ddF_x;
+      var $ddF_y;
+      var $x;
+      var $y;
+      $s_addr=$s;
+      $x0_addr=$x0;
+      $y0_addr=$y0;
+      $radius_addr=$radius;
+      $colour_addr=$colour;
+      var $0=$radius_addr;
+      var $sub=(((1)-($0))|0);
+      $f=$sub;
+      $ddF_x=0;
+      var $1=$radius_addr;
+      var $mul=((($1)*(-2))&-1);
+      $ddF_y=$mul;
+      $x=0;
+      var $2=$radius_addr;
+      $y=$2;
+      var $3=$s_addr;
+      var $4=$x0_addr;
+      var $5=$y0_addr;
+      var $6=$radius_addr;
+      var $add=((($5)+($6))|0);
+      var $7=$colour_addr;
+      _xDrawPixel32($3, $4, $add, $7);
+      var $8=$s_addr;
+      var $9=$x0_addr;
+      var $10=$y0_addr;
+      var $11=$radius_addr;
+      var $sub1=((($10)-($11))|0);
+      var $12=$colour_addr;
+      _xDrawPixel32($8, $9, $sub1, $12);
+      var $13=$s_addr;
+      var $14=$x0_addr;
+      var $15=$radius_addr;
+      var $sub2=((($14)-($15))|0);
+      var $16=$x0_addr;
+      var $17=$radius_addr;
+      var $add3=((($16)+($17))|0);
+      var $18=$y0_addr;
+      var $19=$colour_addr;
+      _xDrawLine32($13, $sub2, $add3, $18, $19);
+      label = 3; break;
+    case 3: 
+      var $20=$x;
+      var $21=$y;
+      var $cmp=(($20)|(0)) < (($21)|(0));
+      if ($cmp) { label = 4; break; } else { label = 7; break; }
+    case 4: 
+      var $22=$f;
+      var $cmp4=(($22)|(0)) >= 0;
+      if ($cmp4) { label = 5; break; } else { label = 6; break; }
+    case 5: 
+      var $23=$y;
+      var $dec=((($23)-(1))|0);
+      $y=$dec;
+      var $24=$ddF_y;
+      var $add5=((($24)+(2))|0);
+      $ddF_y=$add5;
+      var $25=$ddF_y;
+      var $26=$f;
+      var $add6=((($26)+($25))|0);
+      $f=$add6;
+      label = 6; break;
+    case 6: 
+      var $27=$x;
+      var $inc=((($27)+(1))|0);
+      $x=$inc;
+      var $28=$ddF_x;
+      var $add7=((($28)+(2))|0);
+      $ddF_x=$add7;
+      var $29=$ddF_x;
+      var $add8=((($29)+(1))|0);
+      var $30=$f;
+      var $add9=((($30)+($add8))|0);
+      $f=$add9;
+      var $31=$s_addr;
+      var $32=$x0_addr;
+      var $33=$x;
+      var $sub10=((($32)-($33))|0);
+      var $34=$x0_addr;
+      var $35=$x;
+      var $add11=((($34)+($35))|0);
+      var $36=$y0_addr;
+      var $37=$y;
+      var $add12=((($36)+($37))|0);
+      var $38=$colour_addr;
+      _xDrawLine32($31, $sub10, $add11, $add12, $38);
+      var $39=$s_addr;
+      var $40=$x0_addr;
+      var $41=$x;
+      var $sub13=((($40)-($41))|0);
+      var $42=$x0_addr;
+      var $43=$x;
+      var $add14=((($42)+($43))|0);
+      var $44=$y0_addr;
+      var $45=$y;
+      var $sub15=((($44)-($45))|0);
+      var $46=$colour_addr;
+      _xDrawLine32($39, $sub13, $add14, $sub15, $46);
+      var $47=$s_addr;
+      var $48=$x0_addr;
+      var $49=$y;
+      var $sub16=((($48)-($49))|0);
+      var $50=$x0_addr;
+      var $51=$y;
+      var $add17=((($50)+($51))|0);
+      var $52=$y0_addr;
+      var $53=$x;
+      var $add18=((($52)+($53))|0);
+      var $54=$colour_addr;
+      _xDrawLine32($47, $sub16, $add17, $add18, $54);
+      var $55=$s_addr;
+      var $56=$x0_addr;
+      var $57=$y;
+      var $sub19=((($56)-($57))|0);
+      var $58=$x0_addr;
+      var $59=$y;
+      var $add20=((($58)+($59))|0);
+      var $60=$y0_addr;
+      var $61=$x;
+      var $sub21=((($60)-($61))|0);
+      var $62=$colour_addr;
+      _xDrawLine32($55, $sub19, $add20, $sub21, $62);
+      label = 3; break;
+    case 7: 
+      return 0;
+    default: assert(0, "bad label: " + label);
+  }
+}
+function _SDL_FillCircle($s, $x0, $y0, $radius, $colour) {
+  var label = 0;
+  label = 2; 
+  while(1) switch(label) {
+    case 2: 
+      var $retval;
+      var $s_addr;
+      var $x0_addr;
+      var $y0_addr;
+      var $radius_addr;
+      var $colour_addr;
+      $s_addr=$s;
+      $x0_addr=$x0;
+      $y0_addr=$y0;
+      $radius_addr=$radius;
+      $colour_addr=$colour;
+      var $0=$radius_addr;
+      var $cmp=(($0)|(0)) > 0;
+      if ($cmp) { label = 3; break; } else { label = 12; break; }
+    case 3: 
+      var $1=$x0_addr;
+      var $2=$radius_addr;
+      var $add=((($1)+($2))|0);
+      var $cmp1=(($add)|(0)) >= 0;
+      if ($cmp1) { label = 5; break; } else { label = 4; break; }
+    case 4: 
+      var $3=$s_addr;
+      var $w=(($3+8)|0);
+      var $4=HEAP32[(($w)>>2)];
+      var $add2=(($4)|0);
+      var $sub=((($add2)-(1))|0);
+      var $5=$x0_addr;
+      var $6=$radius_addr;
+      var $sub3=((($5)-($6))|0);
+      var $cmp4=(($sub)|(0)) <= (($sub3)|(0));
+      if ($cmp4) { label = 5; break; } else { label = 12; break; }
+    case 5: 
+      var $7=$y0_addr;
+      var $8=$radius_addr;
+      var $add6=((($7)+($8))|0);
+      var $cmp7=(($add6)|(0)) >= 0;
+      if ($cmp7) { label = 7; break; } else { label = 6; break; }
+    case 6: 
+      var $9=$s_addr;
+      var $h=(($9+12)|0);
+      var $10=HEAP32[(($h)>>2)];
+      var $add9=(($10)|0);
+      var $sub10=((($add9)-(1))|0);
+      var $11=$y0_addr;
+      var $12=$radius_addr;
+      var $sub11=((($11)-($12))|0);
+      var $cmp12=(($sub10)|(0)) <= (($sub11)|(0));
+      if ($cmp12) { label = 7; break; } else { label = 12; break; }
+    case 7: 
+      var $13=$s_addr;
+      var $format=(($13+4)|0);
+      var $14=HEAP32[(($format)>>2)];
+      var $BytesPerPixel=(($14+9)|0);
+      var $15=HEAP8[($BytesPerPixel)];
+      var $conv=(($15)&(255));
+      if ((($conv)|(0))==1) {
+        label = 8; break;
+      }
+      else if ((($conv)|(0))==2) {
+        label = 9; break;
+      }
+      else if ((($conv)|(0))==3 | (($conv)|(0))==4) {
+        label = 10; break;
+      }
+      else {
+      label = 11; break;
+      }
+    case 8: 
+      var $16=$s_addr;
+      var $17=$x0_addr;
+      var $18=$y0_addr;
+      var $19=$radius_addr;
+      var $20=$colour_addr;
+      var $conv13=(($20) & 255);
+      var $call=_FillCircle8($16, $17, $18, $19, $conv13);
+      $retval=$call;
+      label = 13; break;
+    case 9: 
+      var $21=$s_addr;
+      var $22=$x0_addr;
+      var $23=$y0_addr;
+      var $24=$radius_addr;
+      var $25=$colour_addr;
+      var $conv15=(($25) & 65535);
+      var $call16=_FillCircle16($21, $22, $23, $24, $conv15);
+      $retval=$call16;
+      label = 13; break;
+    case 10: 
+      var $26=$s_addr;
+      var $27=$x0_addr;
+      var $28=$y0_addr;
+      var $29=$radius_addr;
+      var $30=$colour_addr;
+      var $call18=_FillCircle32($26, $27, $28, $29, $30);
+      $retval=$call18;
+      label = 13; break;
+    case 11: 
+      label = 12; break;
+    case 12: 
+      $retval=-1;
+      label = 13; break;
+    case 13: 
+      var $31=$retval;
+      return $31;
+    default: assert(0, "bad label: " + label);
+  }
+}
 function _clock_is_24h_style() {
   var label = 0;
   return 1;
-}
-function _layer_init($layer, $frame) {
-  var label = 0;
-  var __stackBase__  = STACKTOP; assert(!(STACKTOP&3)); assert((STACKTOP|0) < (STACK_MAX|0));
-  var tempParam = $frame; $frame = STACKTOP;STACKTOP = (STACKTOP + 8)|0;assert((STACKTOP|0) < (STACK_MAX|0));HEAP32[(($frame)>>2)]=HEAP32[((tempParam)>>2)];HEAP32[((($frame)+(4))>>2)]=HEAP32[(((tempParam)+(4))>>2)];
-  var $layer_addr;
-  $layer_addr=$layer;
-  STACKTOP = __stackBase__;
-  return;
-}
-function _window_init($window, $debug_name) {
-  var label = 0;
-  var $window_addr;
-  var $debug_name_addr;
-  $window_addr=$window;
-  $debug_name_addr=$debug_name;
-  return;
 }
 function _getRawColor($color) {
   var label = 0;
@@ -2942,15 +3993,15 @@ function _getRawColor($color) {
       label = 5; break;
       }
     case 3: 
-      var $1=HEAP32[((5242984)>>2)];
+      var $1=HEAP32[((5242980)>>2)];
       $retval=$1;
       label = 6; break;
     case 4: 
-      var $2=HEAP32[((5242976)>>2)];
+      var $2=HEAP32[((5242972)>>2)];
       $retval=$2;
       label = 6; break;
     case 5: 
-      var $3=HEAP32[((5242980)>>2)];
+      var $3=HEAP32[((5242976)>>2)];
       $retval=$3;
       label = 6; break;
     case 6: 
@@ -3029,40 +4080,37 @@ function _layer_add_child($parent, $child) {
     default: assert(0, "bad label: " + label);
   }
 }
-function _getColor($agg_result, $color) {
+function _window_init($window, $debug_name) {
   var label = 0;
-  label = 2; 
-  while(1) switch(label) {
-    case 2: 
-      var $color_addr;
-      $color_addr=$color;
-      var $0=$color_addr;
-      var $conv=(($0)&(255));
-      if ((($conv)|(0))==0) {
-        label = 3; break;
-      }
-      else if ((($conv)|(0))==1) {
-        label = 4; break;
-      }
-      else {
-      label = 5; break;
-      }
-    case 3: 
-      var $1=$agg_result;
-      assert(4 % 1 === 0);HEAP8[($1)]=HEAP8[((((5243096)|0))|0)];HEAP8[((($1)+(1))|0)]=HEAP8[(((((5243096)|0))+(1))|0)];HEAP8[((($1)+(2))|0)]=HEAP8[(((((5243096)|0))+(2))|0)];HEAP8[((($1)+(3))|0)]=HEAP8[(((((5243096)|0))+(3))|0)];
-      label = 6; break;
-    case 4: 
-      var $2=$agg_result;
-      assert(4 % 1 === 0);HEAP8[($2)]=HEAP8[((((5242968)|0))|0)];HEAP8[((($2)+(1))|0)]=HEAP8[(((((5242968)|0))+(1))|0)];HEAP8[((($2)+(2))|0)]=HEAP8[(((((5242968)|0))+(2))|0)];HEAP8[((($2)+(3))|0)]=HEAP8[(((((5242968)|0))+(3))|0)];
-      label = 6; break;
-    case 5: 
-      var $3=$agg_result;
-      assert(4 % 1 === 0);HEAP8[($3)]=HEAP8[((((5243092)|0))|0)];HEAP8[((($3)+(1))|0)]=HEAP8[(((((5243092)|0))+(1))|0)];HEAP8[((($3)+(2))|0)]=HEAP8[(((((5243092)|0))+(2))|0)];HEAP8[((($3)+(3))|0)]=HEAP8[(((((5243092)|0))+(3))|0)];
-      label = 6; break;
-    case 6: 
-      return;
-    default: assert(0, "bad label: " + label);
-  }
+  var $window_addr;
+  var $debug_name_addr;
+  $window_addr=$window;
+  $debug_name_addr=$debug_name;
+  var $0=$window_addr;
+  var $layer=(($0)|0);
+  var $frame=(($layer+8)|0);
+  var $origin=(($frame)|0);
+  var $x=(($origin)|0);
+  HEAP16[(($x)>>1)]=0;
+  var $1=$window_addr;
+  var $layer1=(($1)|0);
+  var $frame2=(($layer1+8)|0);
+  var $origin3=(($frame2)|0);
+  var $y=(($origin3+2)|0);
+  HEAP16[(($y)>>1)]=0;
+  var $2=$window_addr;
+  var $layer4=(($2)|0);
+  var $frame5=(($layer4+8)|0);
+  var $size=(($frame5+4)|0);
+  var $w=(($size)|0);
+  HEAP16[(($w)>>1)]=144;
+  var $3=$window_addr;
+  var $layer6=(($3)|0);
+  var $frame7=(($layer6+8)|0);
+  var $size8=(($frame7+4)|0);
+  var $h=(($size8+2)|0);
+  HEAP16[(($h)>>1)]=168;
+  return;
 }
 function _main() {
   var label = 0;
@@ -3072,15 +4120,15 @@ function _main() {
     case 2: 
       var $retval;
       $retval=0;
-      var $call=_printf(((5243360)|0), (tempInt=STACKTOP,STACKTOP = (STACKTOP + 1)|0,STACKTOP = ((((STACKTOP)+3)>>2)<<2),assert((STACKTOP|0) < (STACK_MAX|0)),HEAP32[((tempInt)>>2)]=0,tempInt));
+      var $call=_printf(((5243348)|0), (tempInt=STACKTOP,STACKTOP = (STACKTOP + 1)|0,STACKTOP = ((((STACKTOP)+3)>>2)<<2),assert((STACKTOP|0) < (STACK_MAX|0)),HEAP32[((tempInt)>>2)]=0,tempInt));
       var $call1=_SDL_Init(32);
       var $call2=_SDL_SetVideoMode(144, 168, 32, 0);
-      HEAP32[((5242972)>>2)]=$call2;
-      var $0=HEAP32[((5242972)>>2)];
+      HEAP32[((5242968)>>2)]=$call2;
+      var $0=HEAP32[((5242968)>>2)];
       var $cmp=(($0)|(0))==0;
       if ($cmp) { label = 3; break; } else { label = 4; break; }
     case 3: 
-      var $call3=_printf(((5243332)|0), (tempInt=STACKTOP,STACKTOP = (STACKTOP + 1)|0,STACKTOP = ((((STACKTOP)+3)>>2)<<2),assert((STACKTOP|0) < (STACK_MAX|0)),HEAP32[((tempInt)>>2)]=0,tempInt));
+      var $call3=_printf(((5243320)|0), (tempInt=STACKTOP,STACKTOP = (STACKTOP + 1)|0,STACKTOP = ((((STACKTOP)+3)>>2)<<2),assert((STACKTOP|0) < (STACK_MAX|0)),HEAP32[((tempInt)>>2)]=0,tempInt));
       $retval=1;
       label = 7; break;
     case 4: 
@@ -3089,7 +4137,7 @@ function _main() {
       if ($cmp5) { label = 5; break; } else { label = 6; break; }
     case 5: 
       var $call7=_SDL_GetError();
-      var $call8=_printf(((5243316)|0), (tempInt=STACKTOP,STACKTOP = (STACKTOP + 4)|0,assert((STACKTOP|0) < (STACK_MAX|0)),HEAP32[((tempInt)>>2)]=$call7,tempInt));
+      var $call8=_printf(((5243304)|0), (tempInt=STACKTOP,STACKTOP = (STACKTOP + 4)|0,assert((STACKTOP|0) < (STACK_MAX|0)),HEAP32[((tempInt)>>2)]=$call7,tempInt));
       $retval=2;
       label = 7; break;
     case 6: 
@@ -3113,7 +4161,7 @@ function _tick() {
       var $now;
       var $call=_time(0);
       $now=$call;
-      var $0=HEAP32[((((5243400)|0))>>2)];
+      var $0=HEAP32[((((5243388)|0))>>2)];
       if ((($0)|(0))==1) {
         label = 3; break;
       }
@@ -3136,7 +4184,7 @@ function _tick() {
       label = 15; break;
       }
     case 3: 
-      var $1=HEAP16[((5243100)>>1)];
+      var $1=HEAP16[((5243104)>>1)];
       var $conv=(($1)&(65535));
       var $2=$now;
       var $cmp=(($conv)|(0))==(($2)|(0));
@@ -3146,7 +4194,7 @@ function _tick() {
     case 5: 
       label = 16; break;
     case 6: 
-      var $3=HEAP16[((5243100)>>1)];
+      var $3=HEAP16[((5243104)>>1)];
       var $conv3=(($3)&(65535));
       var $div=((((($conv3)|(0)))/(60))&-1);
       var $4=$now;
@@ -3158,7 +4206,7 @@ function _tick() {
     case 8: 
       label = 16; break;
     case 9: 
-      var $5=HEAP16[((5243100)>>1)];
+      var $5=HEAP16[((5243104)>>1)];
       var $conv10=(($5)&(65535));
       var $div11=((((($conv10)|(0)))/(3600))&-1);
       var $6=$now;
@@ -3170,22 +4218,22 @@ function _tick() {
     case 11: 
       label = 17; break;
     case 12: 
-      var $call18=_printf(((5243284)|0), (tempInt=STACKTOP,STACKTOP = (STACKTOP + 1)|0,STACKTOP = ((((STACKTOP)+3)>>2)<<2),assert((STACKTOP|0) < (STACK_MAX|0)),HEAP32[((tempInt)>>2)]=0,tempInt));
+      var $call18=_printf(((5243272)|0), (tempInt=STACKTOP,STACKTOP = (STACKTOP + 1)|0,STACKTOP = ((((STACKTOP)+3)>>2)<<2),assert((STACKTOP|0) < (STACK_MAX|0)),HEAP32[((tempInt)>>2)]=0,tempInt));
       label = 17; break;
     case 13: 
-      var $call20=_printf(((5243228)|0), (tempInt=STACKTOP,STACKTOP = (STACKTOP + 1)|0,STACKTOP = ((((STACKTOP)+3)>>2)<<2),assert((STACKTOP|0) < (STACK_MAX|0)),HEAP32[((tempInt)>>2)]=0,tempInt));
+      var $call20=_printf(((5243236)|0), (tempInt=STACKTOP,STACKTOP = (STACKTOP + 1)|0,STACKTOP = ((((STACKTOP)+3)>>2)<<2),assert((STACKTOP|0) < (STACK_MAX|0)),HEAP32[((tempInt)>>2)]=0,tempInt));
       label = 17; break;
     case 14: 
-      var $call22=_printf(((5243192)|0), (tempInt=STACKTOP,STACKTOP = (STACKTOP + 1)|0,STACKTOP = ((((STACKTOP)+3)>>2)<<2),assert((STACKTOP|0) < (STACK_MAX|0)),HEAP32[((tempInt)>>2)]=0,tempInt));
+      var $call22=_printf(((5243200)|0), (tempInt=STACKTOP,STACKTOP = (STACKTOP + 1)|0,STACKTOP = ((((STACKTOP)+3)>>2)<<2),assert((STACKTOP|0) < (STACK_MAX|0)),HEAP32[((tempInt)>>2)]=0,tempInt));
       label = 17; break;
     case 15: 
-      var $call23=_printf(((5243172)|0), (tempInt=STACKTOP,STACKTOP = (STACKTOP + 1)|0,STACKTOP = ((((STACKTOP)+3)>>2)<<2),assert((STACKTOP|0) < (STACK_MAX|0)),HEAP32[((tempInt)>>2)]=0,tempInt));
+      var $call23=_printf(((5243180)|0), (tempInt=STACKTOP,STACKTOP = (STACKTOP + 1)|0,STACKTOP = ((((STACKTOP)+3)>>2)<<2),assert((STACKTOP|0) < (STACK_MAX|0)),HEAP32[((tempInt)>>2)]=0,tempInt));
       label = 17; break;
     case 16: 
       var $7=$now;
       var $conv24=(($7) & 65535);
-      HEAP16[((5243100)>>1)]=$conv24;
-      var $8=HEAP32[((((5243396)|0))>>2)];
+      HEAP16[((5243104)>>1)]=$conv24;
+      var $8=HEAP32[((((5243384)|0))>>2)];
       FUNCTION_TABLE[$8](0, 0);
       label = 17; break;
     case 17: 
@@ -3196,8 +4244,8 @@ function _tick() {
 }
 function _loop() {
   var label = 0;
-  __emscripten_push_main_loop_blocker((2), 0, ((5243156)|0));
-  var $0=HEAP32[((5242972)>>2)];
+  _tick();
+  var $0=HEAP32[((5242968)>>2)];
   var $call=_SDL_Flip($0);
   return;
 }
@@ -3208,19 +4256,19 @@ function _app_event_loop($app_task_ctx, $handlers) {
   var $handlers_addr;
   $app_task_ctx_addr=$app_task_ctx;
   $handlers_addr=$handlers;
-  var $call=_printf(((5243136)|0), (tempInt=STACKTOP,STACKTOP = (STACKTOP + 1)|0,STACKTOP = ((((STACKTOP)+3)>>2)<<2),assert((STACKTOP|0) < (STACK_MAX|0)),HEAP32[((tempInt)>>2)]=0,tempInt));
+  var $call=_printf(((5243140)|0), (tempInt=STACKTOP,STACKTOP = (STACKTOP + 1)|0,STACKTOP = ((((STACKTOP)+3)>>2)<<2),assert((STACKTOP|0) < (STACK_MAX|0)),HEAP32[((tempInt)>>2)]=0,tempInt));
   var $0=$handlers_addr;
   var $1=$0;
-  assert(64 % 1 === 0);_memcpy(5243376, $1, 64);
-  var $2=HEAP32[((((5243376)|0))>>2)];
+  assert(64 % 1 === 0);_memcpy(5243364, $1, 64);
+  var $2=HEAP32[((((5243364)|0))>>2)];
   FUNCTION_TABLE[$2](0);
-  var $3=HEAP32[((((5243396)|0))>>2)];
+  var $3=HEAP32[((((5243384)|0))>>2)];
   FUNCTION_TABLE[$3](0, 0);
   var $call1=_time(0);
   var $conv=(($call1) & 65535);
-  HEAP16[((5243100)>>1)]=$conv;
-  var $call2=_printf(((5243104)|0), (tempInt=STACKTOP,STACKTOP = (STACKTOP + 1)|0,STACKTOP = ((((STACKTOP)+3)>>2)<<2),assert((STACKTOP|0) < (STACK_MAX|0)),HEAP32[((tempInt)>>2)]=0,tempInt));
-  _emscripten_set_main_loop((4), 30, 0);
+  HEAP16[((5243104)>>1)]=$conv;
+  var $call2=_printf(((5243108)|0), (tempInt=STACKTOP,STACKTOP = (STACKTOP + 1)|0,STACKTOP = ((((STACKTOP)+3)>>2)<<2),assert((STACKTOP|0) < (STACK_MAX|0)),HEAP32[((tempInt)>>2)]=0,tempInt));
+  _emscripten_set_main_loop((2), 30, 0);
   STACKTOP = __stackBase__;
   return;
 }
@@ -3228,150 +4276,30 @@ function _graphics_fill_circle($ctx, $p, $radius) {
   var label = 0;
   var __stackBase__  = STACKTOP; assert(!(STACKTOP&3)); assert((STACKTOP|0) < (STACK_MAX|0));
   var tempParam = $p; $p = STACKTOP;STACKTOP = (STACKTOP + 4)|0;assert((STACKTOP|0) < (STACK_MAX|0));HEAP32[(($p)>>2)]=HEAP32[((tempParam)>>2)];
-  label = 2; 
-  while(1) switch(label) {
-    case 2: 
-      var $ctx_addr;
-      var $radius_addr;
-      var $r;
-      var $pixel;
-      var $dy;
-      var $dx;
-      var $x;
-      var $target_pixel_a;
-      var $target_pixel_b;
-      $ctx_addr=$ctx;
-      $radius_addr=$radius;
-      var $0=HEAP32[((5242972)>>2)];
-      var $call=_SDL_LockSurface($0);
-      var $1=$radius_addr;
-      var $conv=(($1)|(0));
-      $r=$conv;
-      var $2=$ctx_addr;
-      var $fill_color=(($2+4)|0);
-      var $3=HEAP32[(($fill_color)>>2)];
-      var $conv1=(($3) & 255);
-      var $call2=_getRawColor($conv1);
-      $pixel=$call2;
-      $dy=1;
-      label = 3; break;
-    case 3: 
-      var $4=$dy;
-      var $5=$r;
-      var $cmp=$4 <= $5;
-      if ($cmp) { label = 4; break; } else { label = 10; break; }
-    case 4: 
-      var $6=$r;
-      var $mul=($6)*(2);
-      var $7=$dy;
-      var $mul4=($mul)*($7);
-      var $8=$dy;
-      var $9=$dy;
-      var $mul5=($8)*($9);
-      var $sub=($mul4)-($mul5);
-      var $call6=Math.sqrt($sub);
-      var $call7=Math.floor($call6);
-      $dx=$call7;
-      var $x8=(($p)|0);
-      var $10=HEAP16[(($x8)>>1)];
-      var $conv9=(($10 << 16) >> 16);
-      var $conv10=(($conv9)|(0));
-      var $11=$dx;
-      var $sub11=($conv10)-($11);
-      var $conv12=(($sub11)&-1);
-      $x=$conv12;
-      var $12=HEAP32[((5242972)>>2)];
-      var $pixels=(($12+20)|0);
-      var $13=HEAP32[(($pixels)>>2)];
-      var $y=(($p+2)|0);
-      var $14=HEAP16[(($y)>>1)];
-      var $conv13=(($14 << 16) >> 16);
-      var $conv14=(($conv13)|(0));
-      var $15=$r;
-      var $add=($conv14)+($15);
-      var $16=$dy;
-      var $sub15=($add)-($16);
-      var $conv16=(($sub15)&-1);
-      var $17=HEAP32[((5242972)>>2)];
-      var $pitch=(($17+16)|0);
-      var $18=HEAP32[(($pitch)>>2)];
-      var $mul17=Math.imul($conv16,$18);
-      var $add_ptr=(($13+$mul17)|0);
-      var $19=$x;
-      var $conv18=(($19 << 16) >> 16);
-      var $mul19=($conv18<<2);
-      var $add_ptr20=(($add_ptr+$mul19)|0);
-      $target_pixel_a=$add_ptr20;
-      var $20=HEAP32[((5242972)>>2)];
-      var $pixels21=(($20+20)|0);
-      var $21=HEAP32[(($pixels21)>>2)];
-      var $y22=(($p+2)|0);
-      var $22=HEAP16[(($y22)>>1)];
-      var $conv23=(($22 << 16) >> 16);
-      var $conv24=(($conv23)|(0));
-      var $23=$r;
-      var $sub25=($conv24)-($23);
-      var $24=$dy;
-      var $add26=($sub25)+($24);
-      var $conv27=(($add26)&-1);
-      var $25=HEAP32[((5242972)>>2)];
-      var $pitch28=(($25+16)|0);
-      var $26=HEAP32[(($pitch28)>>2)];
-      var $mul29=Math.imul($conv27,$26);
-      var $add_ptr30=(($21+$mul29)|0);
-      var $27=$x;
-      var $conv31=(($27 << 16) >> 16);
-      var $mul32=($conv31<<2);
-      var $add_ptr33=(($add_ptr30+$mul32)|0);
-      $target_pixel_b=$add_ptr33;
-      label = 5; break;
-    case 5: 
-      var $28=$x;
-      var $conv35=(($28 << 16) >> 16);
-      var $conv36=(($conv35)|(0));
-      var $x37=(($p)|0);
-      var $29=HEAP16[(($x37)>>1)];
-      var $conv38=(($29 << 16) >> 16);
-      var $conv39=(($conv38)|(0));
-      var $30=$dx;
-      var $add40=($conv39)+($30);
-      var $cmp41=$conv36 <= $add40;
-      if ($cmp41) { label = 6; break; } else { label = 8; break; }
-    case 6: 
-      var $31=$pixel;
-      var $32=$target_pixel_a;
-      var $33=$32;
-      HEAP32[(($33)>>2)]=$31;
-      var $34=$pixel;
-      var $35=$target_pixel_b;
-      var $36=$35;
-      HEAP32[(($36)>>2)]=$34;
-      var $37=$target_pixel_a;
-      var $add_ptr44=(($37+4)|0);
-      $target_pixel_a=$add_ptr44;
-      var $38=$target_pixel_b;
-      var $add_ptr45=(($38+4)|0);
-      $target_pixel_b=$add_ptr45;
-      label = 7; break;
-    case 7: 
-      var $39=$x;
-      var $inc=((($39)+(1))&65535);
-      $x=$inc;
-      label = 5; break;
-    case 8: 
-      label = 9; break;
-    case 9: 
-      var $40=$dy;
-      var $add47=($40)+(1);
-      $dy=$add47;
-      label = 3; break;
-    case 10: 
-      var $41=HEAP32[((5242972)>>2)];
-      _SDL_UnlockSurface($41);
-      STACKTOP = __stackBase__;
-      return;
-    default: assert(0, "bad label: " + label);
-  }
+  var $ctx_addr;
+  var $radius_addr;
+  $ctx_addr=$ctx;
+  $radius_addr=$radius;
+  var $0=HEAP32[((5242968)>>2)];
+  var $call=_SDL_LockSurface($0);
+  var $1=HEAP32[((5242968)>>2)];
+  var $x=(($p)|0);
+  var $2=HEAP16[(($x)>>1)];
+  var $conv=(($2 << 16) >> 16);
+  var $y=(($p+2)|0);
+  var $3=HEAP16[(($y)>>1)];
+  var $conv1=(($3 << 16) >> 16);
+  var $4=$radius_addr;
+  var $5=$ctx_addr;
+  var $fill_color=(($5+4)|0);
+  var $6=HEAP32[(($fill_color)>>2)];
+  var $conv2=(($6) & 255);
+  var $call3=_getRawColor($conv2);
+  var $call4=_SDL_FillCircle($1, $conv, $conv1, $4, $call3);
+  var $7=HEAP32[((5242968)>>2)];
+  _SDL_UnlockSurface($7);
+  STACKTOP = __stackBase__;
+  return;
 }
 function _get_time($_time) {
   var label = 0;
@@ -3442,44 +4370,43 @@ function _get_time($_time) {
 }
 function _layer_mark_dirty($layer) {
   var label = 0;
-  var __stackBase__  = STACKTOP; STACKTOP = (STACKTOP + 16)|0; assert(!(STACKTOP&3)); assert((STACKTOP|0) < (STACK_MAX|0));
   var $layer_addr;
-  var $ctx=__stackBase__;
   $layer_addr=$layer;
   var $0=$layer_addr;
   var $update_proc=(($0+36)|0);
   var $1=HEAP32[(($update_proc)>>2)];
   var $2=$layer_addr;
-  FUNCTION_TABLE[$1]($2, $ctx);
+  FUNCTION_TABLE[$1]($2, 5243088);
+  return;
+}
+function _layer_init($layer, $frame) {
+  var label = 0;
+  var __stackBase__  = STACKTOP; assert(!(STACKTOP&3)); assert((STACKTOP|0) < (STACK_MAX|0));
+  var tempParam = $frame; $frame = STACKTOP;STACKTOP = (STACKTOP + 8)|0;assert((STACKTOP|0) < (STACK_MAX|0));HEAP32[(($frame)>>2)]=HEAP32[((tempParam)>>2)];HEAP32[((($frame)+(4))>>2)]=HEAP32[(((tempParam)+(4))>>2)];
+  var $layer_addr;
+  $layer_addr=$layer;
+  var $0=$layer_addr;
+  var $frame1=(($0+8)|0);
+  var $1=$frame1;
+  var $2=$frame;
+  assert(8 % 1 === 0);HEAP16[(($1)>>1)]=HEAP16[(($2)>>1)];HEAP16[((($1)+(2))>>1)]=HEAP16[((($2)+(2))>>1)];HEAP16[((($1)+(4))>>1)]=HEAP16[((($2)+(4))>>1)];HEAP16[((($1)+(6))>>1)]=HEAP16[((($2)+(6))>>1)];
   STACKTOP = __stackBase__;
   return;
 }
 function _window_set_background_color($window, $background_color) {
   var label = 0;
-  var __stackBase__  = STACKTOP; STACKTOP = (STACKTOP + 4)|0; assert(!(STACKTOP&3)); assert((STACKTOP|0) < (STACK_MAX|0));
   var $window_addr;
   var $background_color_addr;
-  var $color=__stackBase__;
+  var $color;
   $window_addr=$window;
   $background_color_addr=$background_color;
   var $0=$background_color_addr;
   var $conv=(($0) & 255);
-  _getColor($color, $conv);
-  var $1=HEAP32[((5242972)>>2)];
-  var $2=HEAP32[((5242972)>>2)];
-  var $format=(($2+4)|0);
-  var $3=HEAP32[(($format)>>2)];
-  var $r=(($color)|0);
-  var $4=HEAP8[($r)];
-  var $g=(($color+1)|0);
-  var $5=HEAP8[($g)];
-  var $b=(($color+2)|0);
-  var $6=HEAP8[($b)];
-  var $unused=(($color+3)|0);
-  var $7=HEAP8[($unused)];
-  var $call=_SDL_MapRGBA($3, $4, $5, $6, $7);
-  var $call1=_SDL_FillRect($1, 0, $call);
-  STACKTOP = __stackBase__;
+  var $call=_getRawColor($conv);
+  $color=$call;
+  var $1=HEAP32[((5242968)>>2)];
+  var $2=$color;
+  var $call1=_SDL_FillRect($1, 0, $2);
   return;
 }
 function _draw_cell($ctx, $center, $filled) {
@@ -3695,7 +4622,7 @@ function _handle_second_tick($ctx, $t) {
   $t_addr=$t;
   var $0=$t_addr;
   var $1=$ctx_addr;
-  _layer_mark_dirty(5243052);
+  _layer_mark_dirty(5243048);
   return;
 }
 function _handle_init($ctx) {
@@ -3703,12 +4630,12 @@ function _handle_init($ctx) {
   var $ctx_addr;
   $ctx_addr=$ctx;
   var $0=$ctx_addr;
-  _window_init(5242880, ((5243264)|0));
+  _window_init(5242880, ((5243160)|0));
   _window_stack_push(5242880, 1);
   _window_set_background_color(5242880, 0);
-  _layer_init(5243052, ((5242888)|0));
-  HEAP32[(((((5243088)|0)))>>2)]=6;
-  _layer_add_child(((5242880)|0), 5243052);
+  _layer_init(5243048, ((5242888)|0));
+  HEAP32[(((((5243084)|0)))>>2)]=4;
+  _layer_add_child(((5242880)|0), 5243048);
   return;
 }
 function _pbl_main($params) {
@@ -3718,7 +4645,7 @@ function _pbl_main($params) {
   var $handlers=__stackBase__;
   $params_addr=$params;
   var $0=$handlers;
-  assert(64 % 1 === 0);_memcpy($0, 5242988, 64);
+  assert(64 % 1 === 0);_memcpy($0, 5242984, 64);
   var $1=$params_addr;
   _app_event_loop($1, $handlers);
   STACKTOP = __stackBase__;
@@ -3730,6 +4657,10 @@ function _pbl_main($params) {
 var i64Math = null;
 // === Auto-generated postamble setup entry stuff ===
 Module.callMain = function callMain(args) {
+  assert(runDependencies == 0, 'cannot call main when async dependencies remain! (listen on __ATMAIN__)');
+  assert(!Module['preRun'] || Module['preRun'].length == 0, 'cannot call main when preRun functions remain to be called');
+  args = args || [];
+  ensureInitRuntime();
   var argc = args.length+1;
   function pad() {
     for (var i = 0; i < 4-1; i++) {
@@ -3781,10 +4712,11 @@ function run(args) {
     }
   }
   function doRun() {
+    ensureInitRuntime();
+    preMain();
     var ret = 0;
     calledRun = true;
-    if (Module['_main']) {
-      preMain();
+    if (Module['_main'] && shouldRunNow) {
       ret = Module.callMain(args);
       if (!Module['noExitRuntime']) {
         exitRuntime();
@@ -3819,18 +4751,17 @@ if (Module['preInit']) {
     Module['preInit'].pop()();
   }
 }
-initRuntime();
+// shouldRunNow refers to calling main(), not run().
 var shouldRunNow = true;
 if (Module['noInitialRun']) {
   shouldRunNow = false;
 }
-if (shouldRunNow) {
-  run();
-}
+run();
 // {{POST_RUN_ADDITIONS}}
   // {{MODULE_ADDITIONS}}
 
+        </script>
+        
 
-    </script>
-  </body>
-</html>
+      </body>
+      </html>
