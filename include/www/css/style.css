@@ -1,0 +1,131 @@
+
+body {
+	background-color: gray;
+	background-image:url('../images/Pattern - Aged Paper.png');
+}
+
+@media only screen and (-webkit-min-device-pixel-ratio: 2), 
+only screen and (min-device-pixel-ratio: 2) {
+	body {
+		background-image:url('../images/Pattern - Aged Paper@2x.png');
+		background-size: 300px 300px;
+	}
+}
+
+
+.pebble-color-wrapper {
+margin:auto;
+width:200px;
+display:block;
+overflow:visible;
+height:20px
+}
+
+.pebble-color {
+height:25px;
+width:25px;
+float:left;
+margin:15px 7px 0;
+box-shadow:1px 1px 1px #000;
+border-radius:3px;
+cursor:pointer
+}
+
+.pebble-red.pebble-color {
+background-color:#a51515
+}
+
+.pebble-black.pebble-color {
+background-color:#000
+}
+
+.pebble-orange.pebble-color {
+background-color:#f6a40d
+}
+
+.pebble-gray.pebble-color {
+background-color:#666
+}
+
+.pebble-white.pebble-color {
+background-color:#fff
+}
+
+.pebble-body-wrapper {
+height:393px;
+margin:0 auto;
+overflow:hidden;
+position:relative;
+width:233px;
+border-radius:10px
+}
+
+.pebble-body {
+margin:0 auto;
+height:393px;
+width:100%;
+background-image:url(../images/pebble_watch-web-body.png);
+background-repeat:no-repeat;
+position:absolute;
+}
+
+.pebble-body:before {
+background-color:transparent;
+box-shadow:0 17px 32px #000;
+content:"";
+height:20px;
+left:9px;
+position:absolute;
+top:78%;
+width:211px;
+z-index:-1
+}
+
+.pebble-body:after {
+background-color:transparent;
+box-shadow:0 -5px 31px #000;
+content:"";
+height:20px;
+left:51px;
+position:absolute;
+top:91%;
+width:130px;
+z-index:-1
+}
+
+.pebble-body .pebble-face {
+left:44px;
+position:absolute;
+top:107px;
+position:absolute;
+z-index:5
+}
+
+.pebble-body .pebble-face img.invert {
+display:none
+}
+
+.pebble-body .pebble-overlay {
+position:absolute;
+z-index:10;
+height:330px;
+width:231px;
+background-repeat:no-repeat;
+height:169px;
+left:44px;
+position:absolute;
+top:107px;
+width:145px;
+z-index:10;
+background-image:url(../images/Blue-Shadow-Effects.png);
+background-repeat:no-repeat
+}
+
+.pebble-body-black {
+background-position:0 -25px
+}
+
+.pebble-body-red {
+background-position:0 -393px
+}
+
