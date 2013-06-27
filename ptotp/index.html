@@ -9,6 +9,7 @@
         <title>pTOTP: brought to you by empebble</title>
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
         <link rel="stylesheet" href="styles/6915fa14.main.css">
         <script src="scripts/vendor/f7f27360.modernizr.js"></script>
     </head>
@@ -142,7 +143,6 @@
             <p class="chromeframe">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> or <a href="http://www.google.com/chromeframe/?redirect=true">activate Google Chrome Frame</a> to improve your experience.</p>
         <![endif]-->
 
-        <!-- Google Analytics: change UA-XXXXX-X to be your site's ID. -->
         <script>
             /*
             var _gaq=[['_setAccount','UA-XXXXX-X'],['_trackPageview']];
@@ -152,7 +152,9 @@
             */
         </script>
 
-        <script data-main="scripts/edf14721.main" src="bower_components/jszip/jszip-deflate.js"></script>
+        <script src="scripts/2cf59c68.main.js"></script>
+
+        <script src="scripts/76c21dca.plugins.js"></script>
 
         <script>
             "use strict";
@@ -220,6 +222,67 @@
 
                 return crc;
             }
+
+            /* WIP
+
+            // Heavily inspired by Pythonic structures.
+
+            function Struct(binary, offset, little_endian) {
+                this.binary = binary;
+                this.little_endian = typeof little_endian !== 'undefined' ? little_endian : true;
+                this.offset = typeof offset !== 'undefined' ? offset : 0;
+            }
+
+            Struct.prototype.readByte = function() {
+                var v = this.binary[this.offset] >>> 0;
+                this.offset++;
+                return v;
+            };
+
+            Struct.prototype._readUIntWithSize = function(size) {
+                var acc = 0, j;
+                if(this.little_endian) {
+                    for (j=size; j>=0; --j) {
+                            acc = ((acc << 8) >>> 0) | this.binary[j+this.offset];
+                    }
+                } else {
+                    for (j=0; j<size; ++j) {
+                            acc = ((acc << 8) >>> 0) | this.binary[j+this.offset];
+                    }
+                }
+                this.offset += size;
+                return acc;
+            };
+
+            Struct.prototype.readUInt16 = function() {
+                return this._readUIntWithSize(2);
+            };
+
+            Struct.prototype.readUInt32 = function() {
+                return this._readUIntWithSize(4);
+            };
+
+            Struct.prototype.readStringWithLength = function(length) {
+                var acc = "";
+                for(var j=0; j < length; ++j) {
+                    acc += String.fromCharCode(this.binary[j+this.offset]);
+                }
+                this.offset += length;
+                return acc;
+            };
+
+            function PebblePack(pbpack) {
+                this._struct = new Struct(pbpack, 0, true);
+
+                this.resourceCount = this._struct.readUInt32();
+                this.crc = this._struct.readUInt32();
+                this.timestamp = this._struct.readUInt32();
+                this.name = this._struct.readStringWithLength(16);
+
+                console.log(this.resourceCount, this.crc, this.timestamp, this.name);
+            }
+
+            */
 
             /* jshint browser:true */
             var pebbleapp;
