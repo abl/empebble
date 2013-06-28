@@ -296,8 +296,8 @@
 
             var metrics = [
                 [ '#secret_key', 'presence', 'Cannot be empty.'],
-                [ '#secret_key', 'exact-length:16', 'Must be exactly 16 characters.' ],
-                [ '#secret_key', /^[A-Z2-7]{16}$/, 'Only A-Z and 2-7 allowed.']
+                [ '#secret_key', 'between:16:32', 'Must be between 16 and 32 characters.' ],
+                [ '#secret_key', /^[a-zA-Z2-7]{16,32}$/, 'Only A-Z and 2-7 allowed.']
             ];
 
             var options = {
@@ -308,8 +308,18 @@
              
             $( "#buildForm" ).nod( metrics, options );
 
+            $("#secret_key").keydown(function (e) {
+            if (e.keyCode == 32) {
+                return false;
+                }
+            }).change(function (e) {
+                $(this).val(function (i, v) { return v.replace(/ /g, ""); }); 
+            });
+
             var buildCustom = function ( event, data ) {
                     console.log("Building...");
+
+                    $("#secret_key").val($("#secret_key").val().toUpperCase());
 
                     var secret_key = $("#secret_key").val() + "\n";
                     var timezone = $("#timezone").val();
