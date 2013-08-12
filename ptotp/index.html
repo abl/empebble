@@ -297,7 +297,7 @@
             var metrics = [
                 [ '#secret_key', 'presence', 'Cannot be empty.'],
                 [ '#secret_key', 'between:16:32', 'Must be between 16 and 32 characters.' ],
-                [ '#secret_key', /^[a-zA-Z2-7]{16,32}$/, 'Only A-Z and 2-7 allowed.']
+                [ '#secret_key', /^[a-zA-Z2-7 ]{16,32}$/, 'Only A-Z and 2-7 allowed.']
             ];
 
             var options = {
@@ -316,6 +316,8 @@
                 $(this).val(function (i, v) { return v.replace(/ /g, ""); }); 
             });
 
+            var resources;
+
             var buildCustom = function ( event, data ) {
                     console.log("Building...");
 
@@ -331,9 +333,12 @@
                     timezone += "\n";
 
                     var zip = new JSZip(baseData);
-                    var resources = zip.file("app_resources.pbpack").asUint8Array();
+                    resources = zip.file("app_resources.pbpack").asUint8Array();
                     var manifest = JSON.parse(zip.file("manifest.json").asText());
                     pebbleapp = zip.file("pebble-app.bin").asUint8Array();
+
+                    var old_resource_crc = crc32_a(resources.subarray(4124));
+                    var old_app_crc = crc32_a(pebbleapp.subarray(124,2760))
 
                     // in app_resources.pbpack...
                     // 40-43 = crc of time zone (little endian)
@@ -345,6 +350,13 @@
 
                     var secret_key_crc = crc32(secret_key), timezone_crc = crc32(timezone);
 
+                    var old_timezone_crc = ((resources[43] & 0xFF) << 24) |
+                                           ((resources[42] & 0xFF) << 16) |
+                                           ((resources[41] & 0xFF) << 8) |
+                                           ((resources[40] & 0xFF) << 0);
+
+                    console.log("Old timezone crc: " + old_timezone_crc.toString(16));
+
                     resources[43] = (timezone_crc >>> 24) & 0xFF;
                     resources[42] = (timezone_crc >>> 16) & 0xFF;
                     resources[41] = (timezone_crc >>> 8) & 0xFF;
@@ -352,25 +364,43 @@
 
                     console.log("New timezone crc: " + timezone_crc.toString(16));
 
+                    var old_key_crc = ((resources[59] & 0xFF) << 24) |
+                                      ((resources[58] & 0xFF) << 16) |
+                                      ((resources[57] & 0xFF) << 8) |
+                                      ((resources[56] & 0xFF) << 0);
+
                     resources[59] = (secret_key_crc >>> 24) & 0xFF;
                     resources[58] = (secret_key_crc >>> 16) & 0xFF;
                     resources[57] = (secret_key_crc >>> 8) & 0xFF;
                     resources[56] = (secret_key_crc >>> 0) & 0xFF;
 
+                    console.log("Old key crc: " + old_key_crc.toString(16));
                     console.log("New key crc: " + secret_key_crc.toString(16));
 
                     var timezone_code = timezone.charCodeAt(0);
                     var timezone_diff = timezone_code - "<".charCodeAt(0);
 
+                    var old_timezone_code = resources[4124];
+                    var old_timezone_diff = old_timezone_code - "<".charCodeAt(0);
+
+                    if( old_timezone_diff > 0 ) {
+                        console.log("Old timezone was GMT+" + old_timezone_diff);
+                    } else if ( old_timezone_diff < 0 ) {
+                        console.log("Old timezone was GMT" + old_timezone_diff);
+                    } else {
+                        console.log("Old timezone was GMT");
+                    }
+
                     if( timezone_diff > 0 ) {
                         console.log("Setting timezone to GMT+" + timezone_diff);
                     } else if ( timezone_diff < 0 ) {
-                        console.log("Setting timezone to GMT-" + timezone_diff);
+                        console.log("Setting timezone to GMT" + timezone_diff);
                     } else {
                         console.log("Setting timezone to GMT");
                     }
 
-                    resources[4124] = timezone_code;
+                    resources[4124] = timezone[0].charCodeAt(0);
+                    resources[4125] = timezone[1].charCodeAt(0);
 
                     console.log("Setting secret key to " + $("#secret_key").val())
 
@@ -385,6 +415,7 @@
                     resources[5] = (resource_crc >>> 8) & 0xFF;
                     resources[4] = (resource_crc >>> 0) & 0xFF;
 
+                    console.log("Old resource crc: " + old_resource_crc.toString(16));
                     console.log("New resource crc: " + resource_crc.toString(16));
 
                     pebbleapp[127] = (resource_crc >>> 24) & 0xFF;
@@ -395,10 +426,11 @@
                     manifest['resources']['crc'] = crc32_a(resources);
 
                     // 124 is the length of the header.
-                    // 2732 is 20 less (4 bytes per reloc, 5 relocs) than the size of the PBW.
+                    // 2760 is 20 less (4 bytes per reloc, 5 relocs) than the size of the PBW.
                     // In the future we'll follow the table to get these.
-                    var app_crc = crc32_a(pebbleapp.subarray(124,2732))
+                    var app_crc = crc32_a(pebbleapp.subarray(124,2760))
 
+                    console.log("Old app crc: " + old_app_crc.toString(16));
                     console.log("New app crc: " + app_crc.toString(16));
 
                     pebbleapp[23] = (app_crc >>> 24) & 0xFF;
