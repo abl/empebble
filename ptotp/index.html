@@ -323,7 +323,12 @@
 
                     $("#secret_key").val($("#secret_key").val().toUpperCase());
 
-                    var secret_key = $("#secret_key").val() + "\n";
+                    var secret_key = $("#secret_key").val()
+
+                    while(secret_key.length < 33) {
+                        secret_key += "\n";
+                    }
+
                     var timezone = $("#timezone").val();
 
                     if($("#daylight_savings").is(":checked")) {
