@@ -19,7 +19,7 @@
 extern void pbl_main(void *params);
 
 static PebbleAppHandlers _PebbleAppHandlers;
-static uint16_t _then;
+static time_t _then;
 
 SDL_Surface *screen;
 
@@ -30,8 +30,12 @@ SDL_Surface *screen;
 #define max(A, B) (((A) > (B) ? (A) : (B)))
 #define clamp(A, X, B)  min(max(A, X), B)
 
-
-
+struct GContext {
+  GColor stroke_color;
+  GColor fill_color;
+  GColor text_color;
+  GCompOp  compositing_mode;
+};
                          //AABBGGRR
 const uint32_t r_white = 0xFFFFFFFF;
 const uint32_t r_black = 0xFF000000;
@@ -64,6 +68,13 @@ SDL_Color getColor(uint8_t color) {
       return s_clear;
   }
 }
+
+// This is really stupid, but I can't think of a better way to do it.
+// The problem is that there is no way to keep context with a Layer,
+// so we can't write generic layer update_proc. So we here keep a list
+// of all of the text_layers that have been created and iterate
+// through them to find the one we're currently trying to draw.
+TextLayer* text_layers[200];
 
 int main() {
   printf("Entering main\n");
@@ -175,6 +186,35 @@ void app_event_loop(AppTaskContextRef app_task_ctx, PebbleAppHandlers *handlers)
   emscripten_set_main_loop(loop,30,0);
 }
 
+void app_log(uint8_t log_level, const char *src_filename, int src_line_number, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  char buffer[256];
+  vsnprintf(buffer, 256, fmt, args);
+  va_end(args);
+  char *level;
+  switch((AppLogLevel)log_level) {
+  case APP_LOG_LEVEL_ERROR:
+    level = "ERROR";
+    break;
+  case APP_LOG_LEVEL_WARNING:
+    level = "WARNING";
+    break;
+  case APP_LOG_LEVEL_INFO:
+    level = "INFO";
+    break;
+  case APP_LOG_LEVEL_DEBUG:
+    level = "DEBUG";
+    break;
+  case APP_LOG_LEVEL_DEBUG_VERBOSE:
+    level = "VERBOSE";
+    break;
+  default:
+    level = "UNKNOWN";
+  }
+  printf("[%s] %s:%d %s\n", level, src_filename, src_line_number, buffer);
+}
+
 //#todo #sprint1
 bool bmp_init_container(int resource_id, BmpContainer *c);
 
@@ -185,7 +225,7 @@ int32_t cos_lookup(int32_t angle) {
   return cos(angle*PI/180)*0xFFFF;
 }
 
-#include "pebble_fonts.h"
+#include "emscripten.pebble_fonts.h"
 
 GFont fonts_get_system_font(const char *font_key) {
   GFont output = NULL;
@@ -231,11 +271,13 @@ GFont fonts_get_system_font(const char *font_key) {
 }
 
 GFont fonts_load_custom_font(ResHandle resource) {
-  char *font_name = resource->path;
-  char path[128] = "../resources/font/";
-  strncat(path, font_name, 128);
-  uint8_t font_size = resource->font_size;
-  return TTF_OpenFont(path, font_size);
+  //TODO: Fix
+  /* char *font_name = resource->path; */
+  /* char path[128] = "../resources/font/"; */
+  /* strncat(path, font_name, 128); */
+  /* uint8_t font_size = resource->font_size; */
+  /* return TTF_OpenFont(path, font_size); */
+  return NULL;
 }
 
 //#nosdk
@@ -528,6 +570,11 @@ void window_set_fullscreen(Window *window, bool enabled) {
   //TODO: Does this cause a relayout?
 }
 
+struct Layer *window_get_root_layer(Window *window) {
+  return &window->layer;
+}
+
+
 int32_t sin_lookup(int32_t angle) {
   //TODO: Rewrite this to use 0x10000 as max_angle and not 360
   return sin(angle*PI/180)*0xFFFF;
@@ -556,28 +603,10 @@ void string_format_time(char *ptr, size_t maxsize, const char *format, const Pbl
 
 }
 
-void text_layer_init(TextLayer *text_layer, GRect frame) {
-  text_layer->layer.frame = frame;
-
-  //Defaults taken from the SDK's documentation.
-  text_layer->font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
-  text_layer->text_alignment = GTextAlignmentLeft;
-  text_layer->text_color = 0;
-  text_layer->background_color = 1;
-  text_layer->overflow_mode = GTextOverflowModeWordWrap;
-  text_layer->should_cache_layout = false;
-
-}
-
-const char *text_layer_get_text(TextLayer *text_layer) { 
-  return text_layer->text;
-}
-
-void text_layer_set_text(TextLayer *text_layer, const char *text) {
-  text_layer->text = text;
+void draw_text(TextLayer *text_layer) {
   SDL_Surface *text_surface;
   SDL_Color bgcolor = getColor(text_layer->background_color);
-  if(!(text_surface = TTF_RenderText(text_layer->font, text,
+  if(!(text_surface = TTF_RenderText(text_layer->font, text_layer->text,
                                      getColor(text_layer->text_color),
                                      bgcolor))) {
     printf("[ERROR] TTF_RenderText_Solid: %s\n", TTF_GetError());
@@ -587,7 +616,7 @@ void text_layer_set_text(TextLayer *text_layer, const char *text) {
     dst.y = text_layer->layer.frame.origin.y;
     if(bgcolor.unused == 255) {
       SDL_Surface *text_bgsurface = SDL_CreateRGBSurface(SDL_SWSURFACE, text_surface->w, text_surface->h, 32,
-                                                        0,0,0,0);
+                                                         0,0,0,0);
       SDL_FillRect(text_bgsurface, NULL, SDL_MapRGBA(screen->format, bgcolor.r, bgcolor.g, bgcolor.b, bgcolor.unused));
       SDL_BlitSurface(text_bgsurface, NULL, screen, &dst);
       SDL_FreeSurface(text_bgsurface);
@@ -595,7 +624,48 @@ void text_layer_set_text(TextLayer *text_layer, const char *text) {
     SDL_BlitSurface(text_surface, NULL, screen, &dst);
     SDL_FreeSurface(text_surface);
   }
+}
 
+
+void text_layer_update(Layer *layer, GContext *ctx) {
+  for (size_t i = 0; i < sizeof(text_layers); i++) {
+    if(text_layers[i] != NULL && &text_layers[i]->layer == layer) {
+      draw_text(text_layers[i]);
+      return;
+    }
+  }
+  printf("[ERROR] Could not find text layer");
+}
+
+void text_layer_init(TextLayer *text_layer, GRect frame) {
+  text_layer->layer.frame = frame;
+  text_layer->layer.update_proc = text_layer_update;
+
+  //Defaults taken from the SDK's documentation.
+  text_layer->font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
+  text_layer->text_alignment = GTextAlignmentLeft;
+  text_layer->text_color = 0;
+  text_layer->background_color = 1;
+  text_layer->overflow_mode = GTextOverflowModeWordWrap;
+  text_layer->should_cache_layout = false;
+
+  for(size_t i = 0; i < sizeof(text_layers); i++) {
+    if (text_layers[i] == NULL) {
+      text_layers[i] = text_layer;
+      return;
+    }
+  }
+  
+  printf("[ERROR] Too many text layers (only 200 supported)");
+}
+
+const char *text_layer_get_text(TextLayer *text_layer) { 
+  return text_layer->text;
+}
+
+void text_layer_set_text(TextLayer *text_layer, const char *text) {
+  text_layer->text = text;
+  draw_text(text_layer);
 }
 
 void text_layer_set_font(TextLayer *text_layer, GFont font) { 
@@ -694,6 +764,10 @@ void graphics_draw_bitmap_in_rect(GContext *ctx, const GBitmap *bitmap, GRect re
           break;
         case GCompOpClear:
           *dst_c = r_clear;
+          break;
+        case GCompOpSet:
+          // TODO: Implement
+          *dst_c = *src_c;
           break;
       }
     }
@@ -823,13 +897,13 @@ ButtonId click_recognizer_get_button_id(ClickRecognizerRef recognizer);
 uint8_t click_number_of_clicks_counted(ClickRecognizerRef recognizer);
 
 //#nosdk
-void menu_cell_basic_draw(GContext *ctx, Layer *cell_layer, const char *title, const char *subtitle, GBitmap *icon);
+void menu_cell_basic_draw(GContext *ctx, const Layer *cell_layer, const char *title, const char *subtitle, GBitmap *icon);
 
 //#nosdk
-void menu_cell_title_draw(GContext *ctx, Layer *cell_layer, const char *title);
+void menu_cell_title_draw(GContext *ctx, const Layer *cell_layer, const char *title);
 
 //#nosdk
-void menu_cell_basic_header_draw(GContext *ctx, Layer *cell_layer, const char *title);
+void menu_cell_basic_header_draw(GContext *ctx, const Layer *cell_layer, const char *title);
 
 //#nosdk
 void menu_layer_init(MenuLayer *menu_layer, GRect frame);
@@ -914,9 +988,6 @@ ClickConfigProvider window_get_click_config_provider(Window *window);
 
 //#nosdk
 void window_set_window_handlers(Window *window, WindowHandlers handlers);
-
-//#nosdk
-struct Layer *window_get_root_layer(Window *window);
 
 //#nosdk
 bool window_get_fullscreen(Window *window);
