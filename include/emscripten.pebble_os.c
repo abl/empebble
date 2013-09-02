@@ -612,12 +612,27 @@ void draw_text(TextLayer *text_layer) {
     printf("[ERROR] TTF_RenderText_Solid: %s\n", TTF_GetError());
   } else {
     SDL_Rect dst;
+
     dst.x = text_layer->layer.frame.origin.x;
     dst.y = text_layer->layer.frame.origin.y;
+
+    // handle center and right alignment
+    int w, h;
+
+    TTF_SizeText(text_layer->font, text_layer->text, &w, &h);
+    if (text_layer->text_alignment == GTextAlignmentCenter) {
+      dst.x = dst.x + (text_layer->layer.frame.size.w - w) / 2;
+    }
+    else if(text_layer->text_alignment == GTextAlignmentRight) {
+      dst.x = dst.x + text_layer->layer.frame.size.w - w;
+    }
+
+    // draw text
     if(bgcolor.unused == 255) {
-      SDL_Surface *text_bgsurface = SDL_CreateRGBSurface(SDL_SWSURFACE, text_surface->w, text_surface->h, 32,
-                                                         0,0,0,0);
-      SDL_FillRect(text_bgsurface, NULL, SDL_MapRGBA(screen->format, bgcolor.r, bgcolor.g, bgcolor.b, bgcolor.unused));
+      SDL_Surface *text_bgsurface = SDL_CreateRGBSurface(
+        SDL_SWSURFACE, text_surface->w, text_surface->h, 32, 0,0,0,0);
+      SDL_FillRect(text_bgsurface, NULL, SDL_MapRGBA(
+                     screen->format, bgcolor.r, bgcolor.g, bgcolor.b, bgcolor.unused));
       SDL_BlitSurface(text_bgsurface, NULL, screen, &dst);
       SDL_FreeSurface(text_bgsurface);
     }
