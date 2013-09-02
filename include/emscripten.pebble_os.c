@@ -41,6 +41,8 @@ const uint32_t r_white = 0xFFFFFFFF;
 const uint32_t r_black = 0xFF000000;
 const uint32_t r_clear = 0x00000000;
 
+Window *current_window = NULL;
+
 GContext current_graphics_context;
 
 uint32_t getRawColor(uint8_t color) {
@@ -328,11 +330,15 @@ void graphics_fill_rect(GContext *ctx, GRect rect, uint8_t corner_radius, GCorne
   //TODO: corner_radius and corner_mask
   //TODO: is stroke color meaningful?
   LOCK(screen);
-
   uint32_t color = getRawColor(ctx->fill_color);
-
   SDL_Rect srect = {rect.origin.x, rect.origin.y, rect.size.w, rect.size.h};
-  SDL_FillRect(screen, &srect, color);
+  // TODO: this is a pretty terrible hack, but SDL_FillRect has some
+  // strange incompatability with emscripten that I don't much feel
+  // like debugging right now
+  for (int i = rect.origin.y; i < rect.size.h + rect.origin.y; i++) {
+    SDL_DrawLine(screen, rect.origin.x, i, rect.origin.x+rect.size.w, i, color);
+  }
+  // SDL_FillRect(screen, &srect, color);
   UNLOCK(screen);
 }
 
@@ -548,6 +554,13 @@ void window_init(Window *window, const char *debug_name) {
 void window_stack_push(Window *window, bool animated) {
   //TODO: Implement
   printf("[WARN] [NOOP] window_stack_push\n");
+  current_window = window;
+
+  // update the window -- this may not be in the correct place
+  if(current_window) {
+    layer_mark_dirty(&window->layer);
+  }
+
 }
 
 void window_set_click_config_provider(Window *window, ClickConfigProvider click_config_provider) {
