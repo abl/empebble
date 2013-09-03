@@ -1026,6 +1026,86 @@ void window_set_status_bar_icon(Window *window, const GBitmap *icon);
 //#nosdk
 bool window_is_loaded(Window *window);
 
+
+/////////// APP Message stuf //////////
+/*void send_message_js() {
+  (_PebbleAppHandlers.message_info.default_callbacks.callbacks.in_received)
+    (dictionary, NULL);
+    }*/
+
+
+DictionaryIterator *outbound_di;
+AppMessageResult app_message_out_get(DictionaryIterator **iter_out){
+  // TODO: Use the actual app message out size
+  Dictionary *dict = malloc(sizeof(Dictionary) + 256);
+
+  DictionaryIterator *di = malloc(sizeof(DictionaryIterator));
+  di->dictionary = dict;
+  di->end = dict+sizeof(Dictionary) + 256;
+  di->cursor = dict->head;
+  *iter_out = di;
+  outbound_di = di;
+  
+  return APP_MSG_OK;
+}
+
+// Note: free output of this function
+char* jsonify_dict(DictionaryIterator *di) {
+  char* output = malloc(sizeof(char) * 256);
+  Tuple *initial = di->cursor;
+  Tuple *t = dict_read_first(di);
+  int index = 0;
+  while(t) {
+    char value[100];
+    switch(t->type) {
+    case TUPLE_BYTE_ARRAY:
+      // snprintf(value, 100, "\"value\": [%s]", bytes);
+      break;
+    case TUPLE_CSTRING:
+      snprintf(value, 100, "\"%s\"", t->value->cstring);
+      break;
+    case TUPLE_UINT:
+      snprintf(value, 100, "%d", t->value->uint32);
+      break;
+    case TUPLE_INT:
+      snprintf(value, 100, "%d", t->value->int32);
+      break;
+    }
+
+    char line[120];
+    snprintf(line, 120, "{\"key\": %d, \"value\": %s}", t->key, value);
+
+    int len = strlen(line);
+    memcpy(output+index, line, len);
+    index += len;
+    t = dict_read_next(di);
+  }
+
+  di->cursor = initial;
+  return output;
+}
+
+AppMessageResult app_message_out_send(void) {
+  char *json = jsonify_dict(outbound_di);
+  printf("[OUTBOUND] %s\n", json);
+  free(json);
+  return APP_MSG_OK;
+}
+AppMessageResult app_message_out_release(void) {
+  free(outbound_di->dictionary);
+  free(outbound_di);
+  return APP_MSG_OK;
+}
+
+
+AppMessageResult app_message_register_callbacks(AppMessageCallbacksNode *callbacks_node);
+AppMessageResult app_message_deregister_callbacks(AppMessageCallbacksNode *callbacks_node);
+void app_sync_init(AppSync *s, uint8_t *buffer, const uint16_t buffer_size, const Tuplet * const keys_and_initial_values, const uint8_t count, AppSyncTupleChangedCallback tuple_changed_callback, AppSyncErrorCallback error_callback, void *context);
+void app_sync_deinit(AppSync *s);
+AppMessageResult app_sync_set(AppSync *s, const Tuplet * const keys_and_values_to_update, const uint8_t count);
+const Tuple *app_sync_get(const AppSync *s, const uint32_t key);
+
+
 //#end-of-progress
 
 Window *window_stack_pop(bool animated);
@@ -1037,37 +1117,6 @@ void property_animation_init(struct PropertyAnimation *property_animation, const
 void property_animation_update_int16(struct PropertyAnimation *property_animation, const uint32_t time_normalized);
 void property_animation_update_gpoint(struct PropertyAnimation *property_animation, const uint32_t time_normalized);
 void property_animation_update_grect(struct PropertyAnimation *property_animation, const uint32_t time_normalized);
-AppMessageResult app_message_register_callbacks(AppMessageCallbacksNode *callbacks_node);
-AppMessageResult app_message_deregister_callbacks(AppMessageCallbacksNode *callbacks_node);
-AppMessageResult app_message_out_get(DictionaryIterator **iter_out);
-AppMessageResult app_message_out_send(void);
-AppMessageResult app_message_out_release(void);
-void app_sync_init(AppSync *s, uint8_t *buffer, const uint16_t buffer_size, const Tuplet * const keys_and_initial_values, const uint8_t count, AppSyncTupleChangedCallback tuple_changed_callback, AppSyncErrorCallback error_callback, void *context);
-void app_sync_deinit(AppSync *s);
-AppMessageResult app_sync_set(AppSync *s, const Tuplet * const keys_and_values_to_update, const uint8_t count);
-const Tuple *app_sync_get(const AppSync *s, const uint32_t key);
-uint32_t dict_calc_buffer_size(const uint8_t tuple_count, ...);
-DictionaryResult dict_write_begin(DictionaryIterator *iter, uint8_t * const buffer, const uint16_t size);
-DictionaryResult dict_write_data(DictionaryIterator *iter, const uint32_t key, const uint8_t * const data, const uint16_t size);
-DictionaryResult dict_write_cstring(DictionaryIterator *iter, const uint32_t key, const char * const cstring);
-DictionaryResult dict_write_int(DictionaryIterator *iter, const uint32_t key, const void *integer, const uint8_t width_bytes, const bool is_signed);
-DictionaryResult dict_write_uint8(DictionaryIterator *iter, const uint32_t key, const uint8_t value);
-DictionaryResult dict_write_uint16(DictionaryIterator *iter, const uint32_t key, const uint16_t value);
-DictionaryResult dict_write_uint32(DictionaryIterator *iter, const uint32_t key, const uint32_t value);
-DictionaryResult dict_write_int8(DictionaryIterator *iter, const uint32_t key, const int8_t value);
-DictionaryResult dict_write_int16(DictionaryIterator *iter, const uint32_t key, const int16_t value);
-DictionaryResult dict_write_int32(DictionaryIterator *iter, const uint32_t key, const int32_t value);
-uint32_t dict_write_end(DictionaryIterator *iter);
-Tuple *dict_read_begin_from_buffer(DictionaryIterator *iter, const uint8_t * const buffer, const uint16_t size);
-Tuple *dict_read_next(DictionaryIterator *iter);
-Tuple *dict_read_first(DictionaryIterator *iter);
-DictionaryResult dict_serialize_tuplets(DictionarySerializeCallback callback, void *context, const uint8_t tuplets_count, const Tuplet * const tuplets);
-DictionaryResult dict_serialize_tuplets_to_buffer(const uint8_t tuplets_count, const Tuplet * const tuplets, uint8_t *buffer, uint32_t *size_in_out);
-DictionaryResult dict_serialize_tuplets_to_buffer_with_iter(const uint8_t tuplets_count, const Tuplet * const tuplets, DictionaryIterator *iter, uint8_t *buffer, uint32_t *size_in_out);
-DictionaryResult dict_write_tuplet(DictionaryIterator *iter, const Tuplet * const tuplet);
-uint32_t dict_calc_buffer_size_from_tuplets(const uint8_t tuplets_count, const Tuplet * const tuplets);
-DictionaryResult dict_merge(DictionaryIterator *dest, uint32_t *dest_max_size_in_out, DictionaryIterator *source, const bool update_existing_keys_only, const DictionaryKeyUpdatedCallback key_callback, void *context);
-Tuple *dict_find(const DictionaryIterator *iter, const uint32_t key);
 void action_bar_layer_init(ActionBarLayer *action_bar);
 void action_bar_layer_set_context(ActionBarLayer *action_bar, void *context);
 void action_bar_layer_set_click_config_provider(ActionBarLayer *action_bar, ClickConfigProvider click_config_provider);

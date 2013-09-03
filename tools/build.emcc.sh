@@ -28,7 +28,7 @@ cp -r $DIR/../include/www/* ../build/www/
 #TODO: Warn if subdirectories exist, since waf doesn't pick them up
 #TODO: Swap out $@ for targeted options?
 
-emcc $@ $EMCC_OPTIMIZE --shell-file $DIR/../include/www/template/shell.html -I $DIR/../include -I ../build -I ../include/ $DIR/../include/emscripten.pebble_os.c $DIR/../include/SDL_prims.c  -o ../build/www/$EMCC_TARGET *.c
+emcc $@ $EMCC_OPTIMIZE --shell-file $DIR/../include/www/template/shell.html -I $DIR/../include -I ../build -I ../include/ $DIR/../include/emscripten.pebble_os.c $DIR/../include/emscripten.pebble_dict.c $DIR/../include/SDL_prims.c  -o ../build/www/$EMCC_TARGET *.c
 
 # cc $@ -02 -I $DIR/../include -I ../build -I ../include/ $DIR/../include/emscripten.pebble_os.c $DIR/../include/SDL_prims.c  -o ../build/www/$APP.native *.c
 
