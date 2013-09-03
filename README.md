@@ -1,4 +1,4 @@
-#Empebble for Pebble SDK v001
+#Empebble for Pebble SDK 1.12
 
 ##Overview
 
@@ -6,18 +6,14 @@ Empebble converts unmodified watchfaces in to embeddable JS that produces a canv
 
 ##Prerequisites
 
-1. Pebble SDK v001
+1. Pebble SDK 1.12
 2. Emscripten (Currently must be on PATH)
 
 ##Usage
 
-1. Copy repository over existing pebble-sdk
-
-		cd empebble
-		cp -r include tools ~/pebble-sdk-release-001/sdk
-
+1. `cd` to the directory of your watchapp
 2. Build and compile watchface as normal
-3. Invoke `tools/build_emcc.sh`
+3. Invoke `$EMPEBBLE/tools/build_emcc.sh`, where `$EMPEBBLE` is the directory you cloned this repo
 4. `build/www/` can now be deployed to any webserver.
 
 ##Tag Definition
