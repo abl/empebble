@@ -1,6 +1,7 @@
 #ifdef EMSCRIPTEN
 
 #include "pebble_os.h"
+#include "empebble_js.h"
 #include "SDL_prims.h"
 
 #define PI 3.14159265
@@ -1026,18 +1027,12 @@ void window_set_status_bar_icon(Window *window, const GBitmap *icon);
 //#nosdk
 bool window_is_loaded(Window *window);
 
-
 /////////// APP Message stuf //////////
-/*void send_message_js() {
-  (_PebbleAppHandlers.message_info.default_callbacks.callbacks.in_received)
-    (dictionary, NULL);
-    }*/
-
 
 DictionaryIterator *outbound_di;
 AppMessageResult app_message_out_get(DictionaryIterator **iter_out){
   // TODO: Use the actual app message out size
-  Dictionary *dict = malloc(sizeof(Dictionary) + 256);
+  Dictionary *dict = calloc(1, sizeof(Dictionary) + 256);
 
   DictionaryIterator *di = malloc(sizeof(DictionaryIterator));
   di->dictionary = dict;
@@ -1051,10 +1046,11 @@ AppMessageResult app_message_out_get(DictionaryIterator **iter_out){
 
 // Note: free output of this function
 char* jsonify_dict(DictionaryIterator *di) {
-  char* output = malloc(sizeof(char) * 256);
+  char* output = malloc(sizeof(char) * 512);
+  output[0] = '[';
+  int index = 1;
   Tuple *initial = di->cursor;
   Tuple *t = dict_read_first(di);
-  int index = 0;
   while(t) {
     char value[100];
     switch(t->type) {
@@ -1065,22 +1061,44 @@ char* jsonify_dict(DictionaryIterator *di) {
       snprintf(value, 100, "\"%s\"", t->value->cstring);
       break;
     case TUPLE_UINT:
-      snprintf(value, 100, "%d", t->value->uint32);
+      switch(t->length) {
+      case 1:
+        snprintf(value, 100, "%u", t->value->uint8);
+        break;
+      case 2:
+        snprintf(value, 100, "%u", t->value->uint16);
+        break;
+      case 4:
+        snprintf(value, 100, "%u", t->value->uint32);
+        break;
+      }
       break;
     case TUPLE_INT:
-      snprintf(value, 100, "%d", t->value->int32);
+      switch(t->length) {
+      case 1:
+        snprintf(value, 100, "%d", t->value->int8);
+        break;
+      case 2:
+        snprintf(value, 100, "%d", t->value->int16);
+        break;
+      case 4:
+        snprintf(value, 100, "%d", t->value->int32);
+        break;
+      }
       break;
     }
 
-    char line[120];
-    snprintf(line, 120, "{\"key\": %d, \"value\": %s}", t->key, value);
+    char line[200];
+    int len = snprintf(line, 200, "{\"key\": %d, \"value\": %s},", t->key, value);
 
-    int len = strlen(line);
+    if (index + len > sizeof(output)) {
+      realloc(output, sizeof(output) + (index+len) - sizeof(output) + 1);
+    }
     memcpy(output+index, line, len);
     index += len;
     t = dict_read_next(di);
   }
-
+  output[index-1] = ']';
   di->cursor = initial;
   return output;
 }
@@ -1105,6 +1123,52 @@ void app_sync_deinit(AppSync *s);
 AppMessageResult app_sync_set(AppSync *s, const Tuplet * const keys_and_values_to_update, const uint8_t count);
 const Tuple *app_sync_get(const AppSync *s, const uint32_t key);
 
+
+
+//////////////// JS API ///////////////
+void create_dict() {
+  DictionaryIterator *di;
+  app_message_out_get(&di);
+}
+
+void add_string_to_dict(uint32_t key, char *str){
+  Tuplet t = TupletCString(key, str);
+  dict_write_tuplet(outbound_di, &t);
+}
+
+void add_uint8_to_dict(uint32_t key, uint8_t i) {
+  Tuplet t = TupletInteger(key, i);
+  dict_write_tuplet(outbound_di, &t);
+}
+void add_uint16_to_dict(uint32_t key, uint16_t i) {
+  Tuplet t = TupletInteger(key, i);
+  dict_write_tuplet(outbound_di, &t);
+}
+void add_uint32_to_dict(uint32_t key, uint32_t i) {
+  Tuplet t = TupletInteger(key, i);
+  dict_write_tuplet(outbound_di, &t);
+}
+void add_int8_to_dict(uint32_t key, int8_t i) {
+  Tuplet t = TupletInteger(key, i);
+  dict_write_tuplet(outbound_di, &t);
+}
+void add_int16_to_dict(uint32_t key, int16_t i) {
+  Tuplet t = TupletInteger(key, i);
+  dict_write_tuplet(outbound_di, &t);
+}
+void add_int32_to_dict(uint32_t key, int32_t i) {
+  Tuplet t = TupletInteger(key, i);
+  dict_write_tuplet(outbound_di, &t);
+}
+
+void send_dict_to_pebble() {
+  dict_write_end(outbound_di);
+  char *msg = jsonify_dict(outbound_di);
+  printf("[SENDING] %s\n", msg);
+  free(msg);
+  (_PebbleAppHandlers.messaging_info.default_callbacks.callbacks.in_received)
+    (outbound_di, NULL);
+}
 
 //#end-of-progress
 

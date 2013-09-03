@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en-us">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width">
+
+  <title>Empebble</title>
+
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/foundation/4.0.9/css/normalize.css">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/foundation/4.0.9/css/foundation.min.css">
+  <link rel="stylesheet" href="css/style.css">
+
+  <script src="//cdnjs.cloudflare.com/ajax/libs/foundation/4.0.9/js/vendor/custom.modernizr.js"></script>
+
+</head>
+<body>
+  <nav class="top-bar">
+  <ul class="title-area">
+    <!-- Title Area -->
+    <li class="name">
+      <h1><a href="#">Empebble</a></h1>
+    </li>
+    <!-- Remove the class "menu-icon" to get rid of menu icon. Take out "Menu" to just have icon alone -->
+    <li class="toggle-topbar menu-icon"><a href="#"><span>Menu</span></a></li>
+  </ul>
+
+  <section class="top-bar-section">
+    <ul class="right">
+      <li class="divider hide-for-small"></li>
+      <li><a href="../classio/">Classio</a></li>
+      <li><a href="../just_a_bit/">Just a Bit</a></li>
+      <li><a href="../segment_six/">Segment Six</a></li>
+
+      <li class="has-dropdown"><a href="#" class="">Color</a>
+        <ul class="dropdown drop-colors">
+          <li><a href="#" class="drop-color">Black</a></li>
+          <li><a href="#" class="drop-color">Red</a></li>
+          <li><a href="#" class="drop-color">Orange</a></li>
+          <li><a href="#" class="drop-color">Gray</a></li>
+          <li><a href="#" class="drop-color">White</a></li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+</nav>
+
+
+  <div class="row">
+
+    <div class="small-12 large-6 columns">
+      <div class="row" id="pebble-row">
+        <div class="small-12 columns" style="margin-bottom: 1em">
+          <div class="pebble-body-wrapper">
+            <div class="pebble-body pebble-body-red slranger" style="height:395px">
+              <div class="pebble-face">
+                <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+              </div>
+
+              <div class="pebble-overlay static" name="img712">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="small-6 small-centered columns">
+
+          <div class="progress alert round hide">
+            <span class="meter" id="meter" style="width: 0%"></span>
+          </div>
+
+          <div class="emscripten text-center" id="status">Loading</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="small-12 large-6 columns">
+      <div class="panel radius" style="height: 395px;">
+        <textarea class="emscripten" id="output" style="height: 100%"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <script type='text/javascript'>
+      // connect to canvas
+      var Module = {
+        preRun: [],
+        postRun: [],
+        print: (function() {
+          var element = document.getElementById('output');
+          element.value = ''; // clear browser cache
+          return function(text) {
+            text = Array.prototype.slice.call(arguments).join(' ');
+            // These replacements are necessary if you render to raw HTML
+            //text = text.replace(/&/g, "&amp;");
+            //text = text.replace(/</g, "&lt;");
+            //text = text.replace(/>/g, "&gt;");
+            //text = text.replace('\n', '<br>', 'g');
+            element.value += text + "\n";
+            element.scrollTop = 99999; // focus on bottom
+          };
+        })(),
+        printErr: function(text) {
+          text = Array.prototype.slice.call(arguments).join(' ');
+          if (0) { // XXX disabled for safety typeof dump == 'function') {
+            dump(text + '\n'); // fast, straight to the real console
+          } else {
+            console.log(text);
+          }
+        },
+        canvas: document.getElementById('canvas'),
+        setStatus: function(text) {
+          if (Module.setStatus.interval) clearInterval(Module.setStatus.interval);
+          var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+            var statusElement = document.getElementById('status');
+            var progressElement = document.getElementById('meter');
+            if (m) {
+              text = m[1];
+              progressElement.style.width = String(parseInt(m[2])*100/parseInt(m[4]))+"%";
+              progressElement.hidden(false);
+            } else {
+              if(progressElement) {
+                progressElement.value = null;
+                progressElement.max = null;
+                progressElement.hidden = true;
+              }
+            }
+            statusElement.innerHTML = text;
+          },
+          totalDependencies: 0,
+          monitorRunDependencies: function(left) {
+            this.totalDependencies = Math.max(this.totalDependencies, left);
+            Module.setStatus(left ? 'Preparing (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+          }
+        };
+        Module.setStatus('Downloading');
+        </script>      
+        <script>
+        document.write('<script src=//cdnjs.cloudflare.com/ajax/libs/foundation/4.0.9/js/vendor/' +
+          ('__proto__' in {} ? 'zepto' : 'jquery') + '.js><\/script>')
+        </script> <script src="//cdnjs.cloudflare.com/ajax/libs/foundation/4.0.9/js/foundation.min.js">
+        </script>
+        <script>
+        $(document).foundation();
+        $('.drop-colors .drop-color').click(function(e){
+          switch(this.textContent) {
+            case "Black":
+              $('.pebble-body').css("background-position", "0px 0px");
+              break;
+            case "Red":
+              $('.pebble-body').css("background-position", "0px "+394*-1+"px");
+              break;
+            case "Orange":
+              $('.pebble-body').css("background-position", "0px "+394*-2+"px");
+              break;
+            case "Gray":
+              $('.pebble-body').css("background-position", "0px "+394*-3+"px");
+              break;
+            case "White":
+              $('.pebble-body').css("background-position", "0px "+394*-4+"px");
+              break;
+          }
+        });
+        </script>
+        <script src="main.js"></script>
+
+        <script src="compiled.js"></script>
+    </body>
+</html>
