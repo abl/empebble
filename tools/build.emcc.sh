@@ -1,14 +1,14 @@
 #!/bin/bash
 
-while [ ! -e "pebble_app.ld" ]
-do
-	if [ `pwd` == '/' ]
-	then
-		echo "[FAIL] Could not find 'pebble_app.ld' in this directory or any parent" 1>&2
-		exit 1
-	fi
-	cd ..
-done
+# while [ ! -e "pebble_app.ld" ]
+# do
+# 	if [ `pwd` == '/' ]
+# 	then
+# 		echo "[FAIL] Could not find 'pebble_app.ld' in this directory or any parent" 1>&2
+# 		exit 1
+# 	fi
+# 	cd ..
+# done
 
 CWD=`pwd`
 APP=`basename $CWD`
@@ -29,6 +29,6 @@ cp -r $DIR/../include/www/* ../build/www/
 #TODO: Warn if subdirectories exist, since waf doesn't pick them up
 #TODO: Swap out $@ for targeted options?
 
-emcc $@ -o ../build/www/compiled.js -I $DIR/../include -I ../build -I ../include/ $DIR/../include/emscripten.pebble_os.c $DIR/../include/emscripten.pebble_dict.c $DIR/../include/SDL_prims.c *.c -s EXPORTED_FUNCTIONS="['_create_dict', '_add_string_to_dict', '_add_uint8_to_dict', '_add_uint16_to_dict', '_add_uint32_to_dict', '_add_int8_to_dict', '_add_int16_to_dict', '_add_int32_to_dict', '_send_dict_to_pebble', '_main']"
+emcc $@ -O1 -o ../build/www/compiled.js -I $DIR/../include -I ../build -I ../include/ $DIR/../include/emscripten.pebble_os.c $DIR/../include/emscripten.pebble_dict.c $DIR/../include/SDL_prims.c *.c -s EXPORTED_FUNCTIONS="['_create_dict', '_add_string_to_dict', '_add_uint8_to_dict', '_add_uint16_to_dict', '_add_uint32_to_dict', '_add_int8_to_dict', '_add_int16_to_dict', '_add_int32_to_dict', '_send_dict_to_pebble', '_main', '_test']"
 
-# cc $@ -02 -I $DIR/../include -I ../build -I ../include/ $DIR/../include/emscripten.pebble_os.c $DIR/../include/SDL_prims.c  -o ../build/www/$APP.native *.c
+# gcc --std=c99 $@ -02 -I $DIR/../include -I ../build -I ../include/ $DIR/../include/emscripten.pebble_os.c $DIR/../include/SDL_prims.c -o ../build/$APP.native *.c 

@@ -13,3 +13,5 @@ void add_int16_to_dict(uint32_t key, int16_t i);
 void add_int32_to_dict(uint32_t key, int32_t i);
 
 void send_dict_to_pebble();
+
+void test();

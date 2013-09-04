@@ -20,7 +20,8 @@ DictionaryResult dict_serialize_tuplets_to_buffer(const uint8_t tuplets_count, c
 DictionaryResult dict_serialize_tuplets_to_buffer_with_iter(const uint8_t tuplets_count, const Tuplet * const tuplets, DictionaryIterator *iter, uint8_t *buffer, uint32_t *size_in_out);
 
 Tuple *dict_read_next(DictionaryIterator *iter) {
-  iter->cursor = iter->cursor + iter->cursor->length;
+  char *c = (char*)iter->cursor;
+  iter->cursor = (Tuple*)(c + iter->cursor->length + sizeof(Tuple));
   if(iter->cursor == iter->end) {
     return NULL;
   }
@@ -35,19 +36,18 @@ Tuple *dict_read_first(DictionaryIterator *iter){
 
 DictionaryResult dict_write_tuplet(DictionaryIterator *iter,
                                    const Tuplet * const tuplet) {
-  Tuple *t = iter->dictionary->head;
   int counter = iter->dictionary->count;
   iter->dictionary->count++;
   
   // TODO: Check whether there's actually enough space
 
   // traverse to the end of the data in the dictionary
-  if (counter > 0) {
-    while (counter >= 0) {
-      t = t+t->length;
-      counter--;
-    }
+  char *p = (char*)iter->dictionary->head;
+  while (counter > 0) {
+    p = p + ((Tuple*)p)->length + sizeof(Tuple);
+    counter--;
   }
+  Tuple *t = (Tuple*)p;
 
   t->key = tuplet->key;
   t->type = tuplet->type;
@@ -55,88 +55,53 @@ DictionaryResult dict_write_tuplet(DictionaryIterator *iter,
   // and store our new tuple there
   switch(tuplet->type) {
   case TUPLE_BYTE_ARRAY: {
-    t->length = tuplet->bytes.length;
+    t->length += tuplet->bytes.length;
     memcpy(t->value->data, tuplet->bytes.data, sizeof(&tuplet->bytes.data));
     break;
   }
   case TUPLE_CSTRING: {
-    t->length = tuplet->cstring.length;
+    t->length += tuplet->cstring.length;
     memcpy(t->value->cstring, tuplet->cstring.data, sizeof(&tuplet->cstring.data));
     break;
   }
-  case TUPLE_UINT: {
-    t->length = tuplet->integer.width;
-    switch(t->length) {
-    case 1:
-      t->value->uint8 = (uint8_t)tuplet->integer.storage;
-      break;
-    case 2:
-      t->value->uint16 = (uint16_t)tuplet->integer.storage;
-      break;
-    case 4:
-      t->value->uint32 = (uint32_t)tuplet->integer.storage;
-      break;
-    }
+  case TUPLE_UINT:
+  case TUPLE_INT:
+    t->length += tuplet->integer.width;
+    memcpy(&t->value, &tuplet->integer.storage, tuplet->integer.width);
     break;
   }
-  case TUPLE_INT: {
-    t->length = tuplet->integer.width;
-    switch(t->length) {
-    case 1:
-      t->value->int8 = (int8_t)tuplet->integer.storage;
-      break;
-    case 2:
-      t->value->int16 = (int16_t)tuplet->integer.storage;
-      break;
-    case 4:
-      t->value->int32 = (int32_t)tuplet->integer.storage;
-      break;
-    }
-  }
-    break;
-  }
-
-  // printf("Adding tuplet key: %d, count: %d, %p, %p, %d\n", tuplet->key, iter->dictionary->count, iter->dictionary->head, t, t->length);
-
-
 
   return DICT_OK;
 };
 
 Tuple *dict_find(const DictionaryIterator *iter, const uint32_t key) {
   Tuple *t = iter->dictionary->head;
-  int counter = iter->dictionary->count;
-  
-  while (counter > 0) {
+
+  while(t != iter->end) {
     if (t->key == key) {
       return t;
     }
-    t = t+t->length;
-    counter--;
+
+    t = (Tuple*)((char*)t + t->length + sizeof(Tuple));
   }
   
   return NULL;
 }
 
 uint32_t dict_write_end(DictionaryIterator *iter) {
-  Tuple *t = iter->dictionary->head;
+  Tuple *t = dict_read_first(iter);
   int counter = iter->dictionary->count;
   uint32_t size = 0;
-  
-  while (counter > 0) {
-    size += t->length;
-    t = t+t->length;
-    counter--;
+
+  for (int i = 0; i < counter; i++) {
+    size += t->length + sizeof(Tuple);
+    t = dict_read_next(iter);
   }
 
-  iter->end = iter->dictionary->head + size;
+  iter->end = (Tuple *)((char*)iter->dictionary->head + size);
 
   char *addr = (char*)iter->dictionary->head;
-  printf("[");
-  for (int i = 0; i < size; i++) {
-    printf("%.2x", *(addr+i));
-  }
-  printf("]\n");
+
   return size;
 }
 
