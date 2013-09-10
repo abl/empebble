@@ -33,7 +33,6 @@ Tuple *dict_read_first(DictionaryIterator *iter){
   return iter->cursor;
 }
 
-
 DictionaryResult dict_write_tuplet(DictionaryIterator *iter,
                                    const Tuplet * const tuplet) {
   int counter = iter->dictionary->count;
@@ -56,18 +55,18 @@ DictionaryResult dict_write_tuplet(DictionaryIterator *iter,
   switch(tuplet->type) {
   case TUPLE_BYTE_ARRAY: {
     t->length += tuplet->bytes.length;
-    memcpy(t->value->data, tuplet->bytes.data, sizeof(&tuplet->bytes.data));
+    memcpy(t->value->data, tuplet->bytes.data, tuplet->bytes.length);
     break;
   }
   case TUPLE_CSTRING: {
     t->length += tuplet->cstring.length;
-    memcpy(t->value->cstring, tuplet->cstring.data, sizeof(&tuplet->cstring.data));
+    memcpy(t->value->cstring, tuplet->cstring.data, tuplet->cstring.length);
     break;
   }
   case TUPLE_UINT:
   case TUPLE_INT:
     t->length += tuplet->integer.width;
-    memcpy(&t->value, &tuplet->integer.storage, tuplet->integer.width);
+    t->value->int32 = tuplet->integer.storage;
     break;
   }
 

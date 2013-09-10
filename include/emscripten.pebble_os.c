@@ -17,6 +17,9 @@
 #define SCREEN_WIDTH 144
 #define SCREEN_HEIGHT 168
 
+#define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00FF0000) >> 8) | (((x) & 0x0000FF00) << 8) | ((x) << 24))
+
+
 extern void pbl_main(void *params);
 
 static PebbleAppHandlers _PebbleAppHandlers;
@@ -1052,6 +1055,8 @@ char* jsonify_dict(DictionaryIterator *di) {
   Tuple *initial = di->cursor;
   Tuple *t = dict_read_first(di);
   while(t) {
+    
+
     char value[100];
     switch(t->type) {
     case TUPLE_BYTE_ARRAY:
@@ -1104,9 +1109,9 @@ char* jsonify_dict(DictionaryIterator *di) {
 }
 
 AppMessageResult app_message_out_send(void) {
-  char *json = jsonify_dict(outbound_di);
-  printf("[OUTBOUND] %s\n", json);
-  free(json);
+  /* char *json = jsonify_dict(outbound_di); */
+  /* printf("[OUTBOUND] %s\n", json); */
+  /* free(json); */
   return APP_MSG_OK;
 }
 AppMessageResult app_message_out_release(void) {
@@ -1145,6 +1150,7 @@ void add_uint16_to_dict(uint32_t key, uint16_t i) {
   dict_write_tuplet(outbound_di, &t);
 }
 void add_uint32_to_dict(uint32_t key, uint32_t i) {
+  char *x = (char*)&i;
   Tuplet t = TupletInteger(key, i);
   dict_write_tuplet(outbound_di, &t);
 }
