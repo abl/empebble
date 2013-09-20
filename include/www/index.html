@@ -119,7 +119,7 @@
             if (m) {
               text = m[1];
               progressElement.style.width = String(parseInt(m[2])*100/parseInt(m[4]))+"%";
-              progressElement.hidden(false);
+              progressElement.hidden = false;
             } else {
               if(progressElement) {
                 progressElement.value = null;

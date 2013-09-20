@@ -83,7 +83,7 @@ SDL_Color getColor(uint8_t color) {
 TextLayer* text_layers[200];
 
 int main() {
-  printf("Entering main\n");
+  printf("[INFO] Entering main\n");
   SDL_Init(SDL_INIT_VIDEO);
   screen = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, 32, SDL_SWSURFACE);
   if(screen == NULL) {
@@ -506,24 +506,138 @@ void psleep(int millis) {
   usleep((uint32_t)millis*1000);
 }
 
-//#trivial #noop
+//NOTE: This is inferred from the layout of a pbpack.
+typedef struct {
+  uint32_t index;
+  uint32_t offset;
+  uint32_t size;
+  uint32_t crc;
+} eResHandle;
+
+uint32_t resource_count = 0;
+eResHandle *resource_table = NULL;
+uint32_t resources_size = 0;
+char *resources;
+
 void resource_init_current_app(ResVersionHandle version) {
-  printf("[INFO] [NOOP] resource_init_current_app\n");
-  printf("[DEBUG] Loading resource version \"%s\"\n", version->friendly_version );
+  printf("[INFO] resource_init_current_app\n");
+  printf("[DEBUG] Friendly version \"%s\"\n", version->friendly_version );
   printf("[DEBUG] CRC %x TIMESTAMP %x\n", version->crc, version->timestamp);
+
+  if(resource_table != NULL) {
+    printf("[ERROR] Attempt to double-init resources; aborting\n");
+    return;
+  }
+
+  FILE *resFile;
+  uint32_t result;
+  ResBankVersion fVersion;
+
+  resFile = fopen("/app_resources.pbpack", "rb");
+  if(resFile == NULL) {
+    printf("[ERROR] Unable to load app_resources.pbpack\n");
+    return;
+  }
+
+  result = fread(&resource_count, sizeof(uint32_t), 1, resFile);
+  if(result != 1) {
+    printf("[ERROR] Unable to read resource table count from resource file\n");
+    return;
+  }
+
+  result = fread(&fVersion, sizeof(ResBankVersion), 1, resFile);
+  if(result != 1) {
+    printf("[ERROR] Unable to read resource table header from resource file\n");
+    return;
+  }
+
+  if(fVersion.crc != version->crc ||
+     fVersion.timestamp != version->timestamp ||
+     strcmp(fVersion.friendly_version,version->friendly_version) != 0) {
+    printf("[ERROR] Resource header mismatch; Pebble will not load this resource pack\n");
+    printf("[DEBUG] Friendly version \"%s\"\n", fVersion.friendly_version );
+    printf("[DEBUG] CRC %x TIMESTAMP %x\n", fVersion.crc, fVersion.timestamp);
+    return;
+  }
+
+
+  resource_table = (eResHandle*)malloc(sizeof(eResHandle)*resource_count);
+
+  result = fread(resource_table, sizeof(eResHandle), resource_count, resFile);
+
+  if(result != resource_count) {
+    printf("[ERROR] Tried to load %u resource table entries but got %u\n", resource_count, result);
+    return;
+  }
+
+  //Here, we (dangerously) assume that resources are dense-packed and that the first index is 1.
+  //This is going to be *generally* true but should be eventually refactored.
+  for(int i=0;i<resource_count;i++) {
+    printf("[DEBUG] I:%d O:%d S:%d C:%x\n", resource_table[i].index, resource_table[i].offset, resource_table[i].size, resource_table[i].crc);
+    if(resource_table[i].index != i+1) {
+      printf("[ERROR] Resources were not dense and sequential.");
+    }
+  }
+
+  //TODO: (Ab)use the fact that there are at most 256 resources at a given time.
+  fseek(resFile, 256*sizeof(eResHandle) + sizeof(uint32_t) + sizeof(ResBankVersion), SEEK_SET);
+  uint32_t resource_start = ftell(resFile);
+  fseek(resFile, 0, SEEK_END);
+  uint32_t resource_end = ftell(resFile);
+  fseek(resFile, 256*sizeof(eResHandle) + sizeof(uint32_t) + sizeof(ResBankVersion), SEEK_SET);
+
+  resources = (char *)malloc(sizeof(char)*(resource_end-resource_start));
+
+  result = fread(resources, sizeof(char), resource_end-resource_start, resFile);
+
+  resources_size = result;
+
+  if(result != (resource_end-resource_start)) {
+    printf("[ERROR] Tried to read %d bytes of resources but got %d\n", resource_end-resource_start, result);
+    return;
+  }
+
+  printf("[DEBUG] Loaded %u resources (%u bytes)\n", resource_count, result);
+  
 }
 
 //#todo #sprint1
 ResHandle resource_get_handle(uint32_t file_id) {
-  printf("[INFO] [NOOP] Fetching resource handle %d", file_id);
-  return NULL;
+  printf("[INFO] Fetching resource handle %d\n", file_id);
+  if(resource_table == NULL) {
+    printf("[ERROR] Attempt to read resources before resources were initialized\n");
+    return NULL;
+  }
+
+  return &resource_table[file_id-1];
 }
 
-//#nosdk
-size_t resource_load(ResHandle h, uint8_t *buffer, size_t max_length);
+size_t resource_load(ResHandle h, uint8_t *buffer, size_t max_length) {
+  return resource_load_byte_range(h, 0, buffer, max_length);
+}
 
-//#nosdk
-size_t resource_load_byte_range(ResHandle h, uint32_t start_bytes, uint8_t *data, size_t num_bytes);
+size_t resource_load_byte_range(ResHandle h, uint32_t start_bytes, uint8_t *data, size_t num_bytes) {
+  printf("[INFO] resource_load_byte_range\n");
+  size_t readBytes = 0;
+
+  eResHandle *e = (eResHandle *)h;
+
+  if(start_bytes >= e->size) {
+    printf("[ERROR] Attempt to start reading past the end of a resource; truncating\n");
+    start_bytes = e->size-1;
+  }
+
+  if(start_bytes+num_bytes > e->size) {
+    printf("[ERROR] Attempt to read past the end of a resource; truncating\n");
+    num_bytes = e->size - start_bytes;
+  }
+
+  start_bytes += e->offset;
+
+  memcpy(data, resources+start_bytes, num_bytes);
+
+  return num_bytes;
+}
 
 //#nosdk
 size_t resource_size(ResHandle h);
