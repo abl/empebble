@@ -1,14 +1,50 @@
 #!/bin/bash
 
-# while [ ! -e "pebble_app.ld" ]
-# do
-# 	if [ `pwd` == '/' ]
-# 	then
-# 		echo "[FAIL] Could not find 'pebble_app.ld' in this directory or any parent" 1>&2
-# 		exit 1
-# 	fi
-# 	cd ..
-# done
+include=""
+
+_usage() {
+cat <<EOF
+ build.emcc.sh $Options
+$*
+        Usage: build.emcc.sh <[options]>
+        Options:
+                -h   --help              Show this message
+                     --include-js=...    Include a js file in compiled HTML
+
+EOF
+}
+
+if [ $# = 0 ]; then _usage ; fi
+
+while getopts ':h-:' OPTION ; do
+  case "$OPTION" in
+    h  ) _usage             ;;
+    -  ) [ $OPTIND -ge 1 ] && optind=$(expr $OPTIND - 1 ) || optind=$OPTIND
+         eval OPTION="\$$optind"
+         OPTARG=$(echo $OPTION | cut -d'=' -f2)
+         OPTION=$(echo $OPTION | cut -d'=' -f1)
+         case $OPTION in
+             --help       ) _usage             ;;
+             --include-js ) include="$OPTARG"  ;; 
+             * )  _usage ;;
+         esac
+       OPTIND=1
+       shift
+      ;;
+    ? )  _usage ;;
+  esac
+done
+
+
+while [ ! -e "pebble_app.ld" ]
+do
+	if [ `pwd` == '/' ]
+	then
+		echo "[FAIL] Could not find 'pebble_app.ld' in this directory or any parent" 1>&2
+		exit 1
+	fi
+	cd ..
+done
 
 CWD=`pwd`
 APP=`basename $CWD`
@@ -23,6 +59,12 @@ cd src
 rm -rf ../build/www/*
 mkdir -p ../build/www/
 cp -r $DIR/../include/www/* ../build/www/
+
+# Insert the include script if one exists
+if [ "$include" != "" ]
+then
+    cat ../$include >> ../build/www/main.js
+fi
 
 #This appears to mimic "./waf build" well enough for most purposes.
 #TODO: Warn if subdirectories exist, since waf doesn't pick them up
