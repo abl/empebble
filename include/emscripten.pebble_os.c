@@ -325,6 +325,7 @@ void graphics_draw_pixel(GContext *ctx, GPoint point) {
 }
 
 void graphics_draw_line(GContext *ctx, GPoint p0, GPoint p1) {
+  printf("Drawing line with color: %x\n", getRawColor(ctx->stroke_color));
   LOCK(screen);
   SDL_DrawLine(screen, p0.x, p0.y, p1.x, p1.y, getRawColor(ctx->stroke_color));
   UNLOCK(screen);
@@ -333,17 +334,9 @@ void graphics_draw_line(GContext *ctx, GPoint p0, GPoint p1) {
 void graphics_fill_rect(GContext *ctx, GRect rect, uint8_t corner_radius, GCornerMask corner_mask) {
   //TODO: corner_radius and corner_mask
   //TODO: is stroke color meaningful?
-  LOCK(screen);
   uint32_t color = getRawColor(ctx->fill_color);
   SDL_Rect srect = {rect.origin.x, rect.origin.y, rect.size.w, rect.size.h};
-  // TODO: this is a pretty terrible hack, but SDL_FillRect has some
-  // strange incompatability with emscripten that I don't much feel
-  // like debugging right now
-  for (int i = rect.origin.y; i < rect.size.h + rect.origin.y; i++) {
-    SDL_DrawLine(screen, rect.origin.x, i, rect.origin.x+rect.size.w, i, color);
-  }
-  // SDL_FillRect(screen, &srect, color);
-  UNLOCK(screen);
+  SDL_FillRect(screen, &srect, color);
 }
 
 void graphics_draw_circle(GContext *ctx, GPoint p, int radius) {
@@ -1248,6 +1241,11 @@ const Tuple *app_sync_get(const AppSync *s, const uint32_t key);
 void create_dict() {
   DictionaryIterator *di;
   app_message_out_get(&di);
+}
+
+void add_bytes_to_dict(uint32_t key, uint8_t *bytes, size_t length){
+  Tuplet t = TupletBytes(key, bytes, length);
+  dict_write_tuplet(outbound_di, &t);
 }
 
 void add_string_to_dict(uint32_t key, char *str){
