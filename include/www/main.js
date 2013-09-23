@@ -17,6 +17,38 @@
       Module.ccall('add_bytes_to_dict', 'void', ['number', 'number', 'number'],
                    [id, buf, bytes.length]);
       Module._free(buf);
-    }
+    },
+
+    press_back: Module.cwrap("press_back", "void", []),
+    press_up: Module.cwrap("press_up", "void", []),
+    press_select: Module.cwrap("press_select", "void", []),
+    press_down: Module.cwrap("press_down", "void", [])
   };
+
+  $(window).ready(function() {
+    $(".buttons div").on("click", function() {
+      var button = this.className.split("-")[0];
+      Empebble["press_" + button]();
+    });
+
+    var keydown = false;
+    $(document).keydown(function(e) {
+      var mapping = {37: "back", 38: "up", 39: "select", 40: "down"};
+      var button = mapping[e.which];
+      if (button != undefined) {
+        keydown = true;
+        Empebble["press_" + button]();
+        $(".buttons ." + button + "-button").addClass("active");
+        e.preventDefault();
+      }
+    });
+
+    $(document).keyup(function(e) {
+      if (keydown) {
+        $(".buttons div").removeClass("active");
+        keydown = false;
+      }
+    });
+
+  });
 })();

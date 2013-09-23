@@ -76,6 +76,6 @@ fi
 emcc $@ -O0 -o ../build/www/compiled.js \
 	-I $DIR/../include -I ../build -I ../include/ \
 	$DIR/../include/emscripten.pebble_os.c $DIR/../include/emscripten.pebble_dict.c $DIR/../include/SDL_prims.c *.c \
-	-s EXPORTED_FUNCTIONS="['_create_dict', '_add_bytes_to_dict', '_add_string_to_dict', '_add_uint8_to_dict', '_add_uint16_to_dict', '_add_uint32_to_dict', '_add_int8_to_dict', '_add_int16_to_dict', '_add_int32_to_dict', '_send_dict_to_pebble', '_main']" \
+	-s EXPORTED_FUNCTIONS="['_create_dict', '_add_bytes_to_dict', '_add_string_to_dict', '_add_uint8_to_dict', '_add_uint16_to_dict', '_add_uint32_to_dict', '_add_int8_to_dict', '_add_int16_to_dict', '_add_int32_to_dict', '_send_dict_to_pebble', '_press_back', '_press_up', '_press_select', '_press_down', '_hold_up', '_hold_select', '_hold_down', '_main']" \
 	--preload-file ../build/app_resources.pbpack@/app_resources.pbpack
 #rm app_resources.pbpack

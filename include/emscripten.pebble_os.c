@@ -1296,6 +1296,47 @@ void send_dict_to_pebble() {
     (outbound_di, NULL);
 }
 
+void call_click_config(ButtonId button_id) {
+  if(current_window != NULL) {
+    ClickConfig back;
+    ClickConfig up;
+    ClickConfig center;
+    ClickConfig down;
+    ClickConfig **cs = malloc(4*sizeof(ClickConfig*));
+    cs[0] = &back;
+    cs[1] = &up;
+    cs[2] = &center;
+    cs[3] = &down;
+
+    current_window->click_config_provider(cs, current_window);
+    ClickHandler h = cs[button_id]->click.handler;
+    if (h != NULL) {
+      h(NULL, current_window);
+    }
+  }
+}
+
+void press_back() {
+  call_click_config(BUTTON_ID_BACK);
+}
+void press_up() {
+  call_click_config(BUTTON_ID_UP);
+}
+void press_select() {
+  call_click_config(BUTTON_ID_SELECT);
+}
+void press_down() {
+  call_click_config(BUTTON_ID_DOWN);
+}
+
+void hold_up(int ms) {
+}
+void hold_select(int ms) {
+}
+void hold_down(int ms) { 
+}
+
+
 //#end-of-progress
 
 Window *window_stack_pop(bool animated);

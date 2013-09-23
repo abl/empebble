@@ -2,6 +2,7 @@
 
 #include "pebble_os.h"
 
+// dict/AppMessage 
 void create_dict();
 
 void add_string_to_dict(uint32_t key, char *str);
@@ -14,4 +15,12 @@ void add_int32_to_dict(uint32_t key, int32_t i);
 
 void send_dict_to_pebble();
 
-void test();
+// Buttons
+void press_back();
+void press_up();
+void press_select();
+void press_down();
+
+void hold_up(int ms);
+void hold_select(int ms);
+void hold_down(int ms);

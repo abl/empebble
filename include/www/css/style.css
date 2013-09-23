@@ -129,3 +129,37 @@ background-position:0 -25px
 background-position:0 -393px
 }
 
+.buttons {
+  position: absolute;
+  top: -27px;
+  left: 351px;
+  z-index: 200;
+}
+
+.buttons div {
+  height: 89px;
+  width: 20px;
+  background-color: rgba(255, 255, 255, 0.01);
+  position: absolute;
+}
+.buttons div:active, div.active {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.buttons .back-button {
+  top: 135px;
+  left: -225px;
+}
+
+.buttons .up-button {
+  top: 100px;
+}
+
+.buttons .select-button {
+  top: 198px;
+  height: 52px;
+}
+
+.buttons .down-button {
+  top: 260px;
+}
