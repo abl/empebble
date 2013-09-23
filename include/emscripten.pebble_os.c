@@ -1156,19 +1156,27 @@ AppMessageResult app_message_out_get(DictionaryIterator **iter_out){
 
 // Note: free output of this function
 char* jsonify_dict(DictionaryIterator *di) {
-  char* output = malloc(sizeof(char) * 512);
+  char* output = malloc(sizeof(char) * 1024);
   output[0] = '[';
   int index = 1;
   Tuple *initial = di->cursor;
   Tuple *t = dict_read_first(di);
   while(t) {
-    
-
-    char value[100];
+    char value[400];
     switch(t->type) {
-    case TUPLE_BYTE_ARRAY:
-      // snprintf(value, 100, "\"value\": [%s]", bytes);
+    case TUPLE_BYTE_ARRAY: {
+      value[0] = '[';
+      int size = 1;
+      char *cursor = value+size;
+      for (int i = 0; i < t->length; i++){
+        int n = snprintf(cursor, sizeof(value)-size, "%d, ", t->value->data[i] & 255);
+        cursor += n;
+        size += n;
+      }
+      (cursor-2)[0] = ']';
+      (cursor-1)[0] = 0;
       break;
+    }
     case TUPLE_CSTRING:
       snprintf(value, 100, "\"%s\"", t->value->cstring);
       break;
@@ -1200,8 +1208,8 @@ char* jsonify_dict(DictionaryIterator *di) {
       break;
     }
 
-    char line[200];
-    int len = snprintf(line, 200, "{\"key\": %d, \"value\": %s},", t->key, value);
+    char line[500];
+    int len = snprintf(line, 500, "{\"key\": %d, \"value\": %s},", t->key, value);
 
     if (index + len > sizeof(output)) {
       realloc(output, sizeof(output) + (index+len) - sizeof(output) + 1);
