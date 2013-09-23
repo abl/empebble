@@ -21,6 +21,7 @@ void press_up();
 void press_select();
 void press_down();
 
-void hold_up(int ms);
-void hold_select(int ms);
-void hold_down(int ms);
+void release_back();
+void release_up();
+void release_select();
+void release_down();

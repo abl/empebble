@@ -1,4 +1,4 @@
-/*global Module:true, $:true, Empebble:true*/
+/*global Module:true, $:true, Empebble:true, setTimeout:false, clearTimeout:false*/
 (function(){
   Empebble = {
     create_dict: Module.cwrap("create_dict", "void", []),
@@ -22,7 +22,12 @@
     press_back: Module.cwrap("press_back", "void", []),
     press_up: Module.cwrap("press_up", "void", []),
     press_select: Module.cwrap("press_select", "void", []),
-    press_down: Module.cwrap("press_down", "void", [])
+    press_down: Module.cwrap("press_down", "void", []),
+
+    release_back: Module.cwrap("release_back", "void", []),
+    release_up: Module.cwrap("release_up", "void", []),
+    release_select: Module.cwrap("release_select", "void", []),
+    release_down: Module.cwrap("release_down", "void", [])
   };
 
   $(window).ready(function() {
@@ -31,22 +36,23 @@
       Empebble["press_" + button]();
     });
 
-    var keydown = false;
+    var buttonDown = undefined;
     $(document).keydown(function(e) {
+      if (buttonDown != undefined) return;
       var mapping = {37: "back", 38: "up", 39: "select", 40: "down"};
-      var button = mapping[e.which];
-      if (button != undefined) {
-        keydown = true;
-        Empebble["press_" + button]();
-        $(".buttons ." + button + "-button").addClass("active");
+      buttonDown = mapping[e.which];
+      if (buttonDown != undefined) {
+        Empebble["press_" + buttonDown]();
+        $(".buttons ." + buttonDown + "-button").addClass("active");
         e.preventDefault();
       }
     });
 
     $(document).keyup(function(e) {
-      if (keydown) {
+      if (buttonDown != undefined) {
         $(".buttons div").removeClass("active");
-        keydown = false;
+        Empebble["release_" + buttonDown]();
+        buttonDown = undefined;
       }
     });
 

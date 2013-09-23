@@ -133,10 +133,13 @@ void tick() {
   (_PebbleAppHandlers.tick_info.tick_handler)(NULL, NULL);
 }
 
+void handle_buttons();
+
 void loop() {
   //_emscripten_push_main_loop_blocker(tick, NULL, "tick handler");
   if(_PebbleAppHandlers.tick_info.tick_handler != NULL)
     tick();
+  handle_buttons();
   SDL_Flip(screen);
 }
 
@@ -1224,9 +1227,9 @@ char* jsonify_dict(DictionaryIterator *di) {
 }
 
 AppMessageResult app_message_out_send(void) {
-  /* char *json = jsonify_dict(outbound_di); */
-  /* printf("[OUTBOUND] %s\n", json); */
-  /* free(json); */
+  char *json = jsonify_dict(outbound_di);
+  printf("[OUTBOUND] %s\n", json);
+  free(json);
   return APP_MSG_OK;
 }
 AppMessageResult app_message_out_release(void) {
@@ -1296,46 +1299,93 @@ void send_dict_to_pebble() {
     (outbound_di, NULL);
 }
 
-void call_click_config(ButtonId button_id) {
+// Buttons
+ButtonId button_down = -1;
+time_t button_down_time;
+
+ClickConfig* get_click_config(ButtonId button_id) {
   if(current_window != NULL) {
     ClickConfig back;
     ClickConfig up;
     ClickConfig center;
     ClickConfig down;
-    ClickConfig **cs = malloc(4*sizeof(ClickConfig*));
+    ClickConfig *cs[4];
     cs[0] = &back;
     cs[1] = &up;
     cs[2] = &center;
     cs[3] = &down;
 
     current_window->click_config_provider(cs, current_window);
-    ClickHandler h = cs[button_id]->click.handler;
+
+    ClickConfig *r = malloc(sizeof(ClickConfig));
+    memcpy(r, cs[button_id], sizeof(ClickConfig));
+    return r;
+  }
+  return NULL;
+}
+
+void press_button(ButtonId button_id) {
+  ClickConfig *c = get_click_config(button_id);
+  ClickHandler h = c->click.handler;
+  if (h != NULL) {
+    h(NULL, current_window);
+  }
+
+  free(c);
+
+  button_down = button_id;
+  button_down_time = time(NULL);
+}
+
+void release_button(ButtonId button_id) {
+  button_down = -1;
+  button_down_time = 0;
+}
+
+void handle_buttons() {
+  if (button_down == -1) return;
+
+  time_t now = time(0);
+  double delta = difftime(now, button_down_time);
+  ClickConfig *c = get_click_config(button_down);
+  
+  if (delta*1000 > c->long_click.delay_ms && c->long_click.delay_ms > 0) {
+
+    printf("Over delay, clicking %d\n", button_down);
+    ClickHandler h = c->long_click.release_handler;
     if (h != NULL) {
       h(NULL, current_window);
     }
+    release_button(button_down);
   }
+  free(c);
 }
 
 void press_back() {
-  call_click_config(BUTTON_ID_BACK);
+  press_button(BUTTON_ID_BACK);
 }
 void press_up() {
-  call_click_config(BUTTON_ID_UP);
+  press_button(BUTTON_ID_UP);
 }
 void press_select() {
-  call_click_config(BUTTON_ID_SELECT);
+  press_button(BUTTON_ID_SELECT);
 }
 void press_down() {
-  call_click_config(BUTTON_ID_DOWN);
+  press_button(BUTTON_ID_DOWN);
 }
 
-void hold_up(int ms) {
+void release_back() {
+  release_button(BUTTON_ID_BACK);
 }
-void hold_select(int ms) {
+void release_up() {
+  release_button(BUTTON_ID_UP);
 }
-void hold_down(int ms) { 
+void release_select() {
+  release_button(BUTTON_ID_SELECT);
 }
-
+void release_down() {
+  release_button(BUTTON_ID_DOWN);
+}
 
 //#end-of-progress
 
