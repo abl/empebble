@@ -1305,10 +1305,10 @@ time_t button_down_time;
 
 ClickConfig* get_click_config(ButtonId button_id) {
   if(current_window != NULL) {
-    ClickConfig back;
-    ClickConfig up;
-    ClickConfig center;
-    ClickConfig down;
+    ClickConfig back = {};
+    ClickConfig up = {};
+    ClickConfig center = {};
+    ClickConfig down = {};
     ClickConfig *cs[4];
     cs[0] = &back;
     cs[1] = &up;
