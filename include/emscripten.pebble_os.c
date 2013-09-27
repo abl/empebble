@@ -756,12 +756,10 @@ void draw_text(TextLayer *text_layer) {
 
     // draw text
     if(bgcolor.unused == 255) {
-      SDL_Surface *text_bgsurface = SDL_CreateRGBSurface(
-        SDL_SWSURFACE, text_surface->w, text_surface->h, 32, 0,0,0,0);
-      SDL_FillRect(text_bgsurface, NULL, SDL_MapRGBA(
+      GRect bgframe = text_layer->layer.frame;
+      SDL_Rect bgrect = {bgframe.origin.x, bgframe.origin.y, bgframe.size.w, bgframe.size.h};
+      SDL_FillRect(screen, &bgrect, SDL_MapRGBA(
                      screen->format, bgcolor.r, bgcolor.g, bgcolor.b, bgcolor.unused));
-      SDL_BlitSurface(text_bgsurface, NULL, screen, &dst);
-      SDL_FreeSurface(text_bgsurface);
     }
     SDL_BlitSurface(text_surface, NULL, screen, &dst);
     SDL_FreeSurface(text_surface);
