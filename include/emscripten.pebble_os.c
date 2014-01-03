@@ -133,10 +133,13 @@ void tick() {
   (_PebbleAppHandlers.tick_info.tick_handler)(NULL, NULL);
 }
 
+void handle_buttons();
+
 void loop() {
   //_emscripten_push_main_loop_blocker(tick, NULL, "tick handler");
   if(_PebbleAppHandlers.tick_info.tick_handler != NULL)
     tick();
+  handle_buttons();
   SDL_Flip(screen);
 }
 
@@ -325,6 +328,7 @@ void graphics_draw_pixel(GContext *ctx, GPoint point) {
 }
 
 void graphics_draw_line(GContext *ctx, GPoint p0, GPoint p1) {
+  printf("Drawing line with color: %x\n", getRawColor(ctx->stroke_color));
   LOCK(screen);
   SDL_DrawLine(screen, p0.x, p0.y, p1.x, p1.y, getRawColor(ctx->stroke_color));
   UNLOCK(screen);
@@ -333,17 +337,9 @@ void graphics_draw_line(GContext *ctx, GPoint p0, GPoint p1) {
 void graphics_fill_rect(GContext *ctx, GRect rect, uint8_t corner_radius, GCornerMask corner_mask) {
   //TODO: corner_radius and corner_mask
   //TODO: is stroke color meaningful?
-  LOCK(screen);
   uint32_t color = getRawColor(ctx->fill_color);
   SDL_Rect srect = {rect.origin.x, rect.origin.y, rect.size.w, rect.size.h};
-  // TODO: this is a pretty terrible hack, but SDL_FillRect has some
-  // strange incompatability with emscripten that I don't much feel
-  // like debugging right now
-  for (int i = rect.origin.y; i < rect.size.h + rect.origin.y; i++) {
-    SDL_DrawLine(screen, rect.origin.x, i, rect.origin.x+rect.size.w, i, color);
-  }
-  // SDL_FillRect(screen, &srect, color);
-  UNLOCK(screen);
+  SDL_FillRect(screen, &srect, color);
 }
 
 void graphics_draw_circle(GContext *ctx, GPoint p, int radius) {
@@ -760,12 +756,10 @@ void draw_text(TextLayer *text_layer) {
 
     // draw text
     if(bgcolor.unused == 255) {
-      SDL_Surface *text_bgsurface = SDL_CreateRGBSurface(
-        SDL_SWSURFACE, text_surface->w, text_surface->h, 32, 0,0,0,0);
-      SDL_FillRect(text_bgsurface, NULL, SDL_MapRGBA(
+      GRect bgframe = text_layer->layer.frame;
+      SDL_Rect bgrect = {bgframe.origin.x, bgframe.origin.y, bgframe.size.w, bgframe.size.h};
+      SDL_FillRect(screen, &bgrect, SDL_MapRGBA(
                      screen->format, bgcolor.r, bgcolor.g, bgcolor.b, bgcolor.unused));
-      SDL_BlitSurface(text_bgsurface, NULL, screen, &dst);
-      SDL_FreeSurface(text_bgsurface);
     }
     SDL_BlitSurface(text_surface, NULL, screen, &dst);
     SDL_FreeSurface(text_surface);
@@ -1163,19 +1157,27 @@ AppMessageResult app_message_out_get(DictionaryIterator **iter_out){
 
 // Note: free output of this function
 char* jsonify_dict(DictionaryIterator *di) {
-  char* output = malloc(sizeof(char) * 512);
+  char* output = malloc(sizeof(char) * 1024);
   output[0] = '[';
   int index = 1;
   Tuple *initial = di->cursor;
   Tuple *t = dict_read_first(di);
   while(t) {
-    
-
-    char value[100];
+    char value[400];
     switch(t->type) {
-    case TUPLE_BYTE_ARRAY:
-      // snprintf(value, 100, "\"value\": [%s]", bytes);
+    case TUPLE_BYTE_ARRAY: {
+      value[0] = '[';
+      int size = 1;
+      char *cursor = value+size;
+      for (int i = 0; i < t->length; i++){
+        int n = snprintf(cursor, sizeof(value)-size, "%d, ", t->value->data[i] & 255);
+        cursor += n;
+        size += n;
+      }
+      (cursor-2)[0] = ']';
+      (cursor-1)[0] = 0;
       break;
+    }
     case TUPLE_CSTRING:
       snprintf(value, 100, "\"%s\"", t->value->cstring);
       break;
@@ -1207,8 +1209,8 @@ char* jsonify_dict(DictionaryIterator *di) {
       break;
     }
 
-    char line[200];
-    int len = snprintf(line, 200, "{\"key\": %d, \"value\": %s},", t->key, value);
+    char line[500];
+    int len = snprintf(line, 500, "{\"key\": %d, \"value\": %s},", t->key, value);
 
     if (index + len > sizeof(output)) {
       realloc(output, sizeof(output) + (index+len) - sizeof(output) + 1);
@@ -1223,9 +1225,9 @@ char* jsonify_dict(DictionaryIterator *di) {
 }
 
 AppMessageResult app_message_out_send(void) {
-  /* char *json = jsonify_dict(outbound_di); */
-  /* printf("[OUTBOUND] %s\n", json); */
-  /* free(json); */
+  char *json = jsonify_dict(outbound_di);
+  printf("[OUTBOUND] %s\n", json);
+  free(json);
   return APP_MSG_OK;
 }
 AppMessageResult app_message_out_release(void) {
@@ -1248,6 +1250,11 @@ const Tuple *app_sync_get(const AppSync *s, const uint32_t key);
 void create_dict() {
   DictionaryIterator *di;
   app_message_out_get(&di);
+}
+
+void add_bytes_to_dict(uint32_t key, uint8_t *bytes, size_t length){
+  Tuplet t = TupletBytes(key, bytes, length);
+  dict_write_tuplet(outbound_di, &t);
 }
 
 void add_string_to_dict(uint32_t key, char *str){
@@ -1288,6 +1295,94 @@ void send_dict_to_pebble() {
   free(msg);
   (_PebbleAppHandlers.messaging_info.default_callbacks.callbacks.in_received)
     (outbound_di, NULL);
+}
+
+// Buttons
+ButtonId button_down = -1;
+time_t button_down_time;
+
+ClickConfig* get_click_config(ButtonId button_id) {
+  if(current_window != NULL) {
+    ClickConfig back = {};
+    ClickConfig up = {};
+    ClickConfig center = {};
+    ClickConfig down = {};
+    ClickConfig *cs[4];
+    cs[0] = &back;
+    cs[1] = &up;
+    cs[2] = &center;
+    cs[3] = &down;
+
+    current_window->click_config_provider(cs, current_window);
+
+    ClickConfig *r = malloc(sizeof(ClickConfig));
+    memcpy(r, cs[button_id], sizeof(ClickConfig));
+    return r;
+  }
+  return NULL;
+}
+
+void press_button(ButtonId button_id) {
+  ClickConfig *c = get_click_config(button_id);
+  ClickHandler h = c->click.handler;
+  if (h != NULL) {
+    h(NULL, current_window);
+  }
+
+  free(c);
+
+  button_down = button_id;
+  button_down_time = time(NULL);
+}
+
+void release_button(ButtonId button_id) {
+  button_down = -1;
+  button_down_time = 0;
+}
+
+void handle_buttons() {
+  if (button_down == -1) return;
+
+  time_t now = time(0);
+  double delta = difftime(now, button_down_time);
+  ClickConfig *c = get_click_config(button_down);
+  
+  if (delta*1000 > c->long_click.delay_ms && c->long_click.delay_ms > 0) {
+
+    printf("Over delay, clicking %d\n", button_down);
+    ClickHandler h = c->long_click.release_handler;
+    if (h != NULL) {
+      h(NULL, current_window);
+    }
+    release_button(button_down);
+  }
+  free(c);
+}
+
+void press_back() {
+  press_button(BUTTON_ID_BACK);
+}
+void press_up() {
+  press_button(BUTTON_ID_UP);
+}
+void press_select() {
+  press_button(BUTTON_ID_SELECT);
+}
+void press_down() {
+  press_button(BUTTON_ID_DOWN);
+}
+
+void release_back() {
+  release_button(BUTTON_ID_BACK);
+}
+void release_up() {
+  release_button(BUTTON_ID_UP);
+}
+void release_select() {
+  release_button(BUTTON_ID_SELECT);
+}
+void release_down() {
+  release_button(BUTTON_ID_DOWN);
 }
 
 //#end-of-progress
