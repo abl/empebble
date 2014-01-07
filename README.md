@@ -37,3 +37,7 @@ Empebble converts unmodified watchfaces in to embeddable JS that produces a canv
 ###Other
 
 `#trivial` - trivial function
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/abl/empebble/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
